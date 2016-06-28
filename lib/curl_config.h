@@ -4,6 +4,9 @@
 /* Location of default ca bundle */
 /* #undef CURL_CA_BUNDLE */
 
+/* define "1" to use built in CA store of SSL library */
+/* #undef CURL_CA_FALLBACK */
+
 /* Location of default ca path */
 #define CURL_CA_PATH "/system/etc/security/cacerts"
 
@@ -145,14 +148,17 @@
 /* Define to 1 if you have the <crypto.h> header file. */
 /* #undef HAVE_CRYPTO_H */
 
+/* Define to 1 if you have the `CyaSSL_CTX_UseSupportedCurve' function. */
+/* #undef HAVE_CYASSL_CTX_USESUPPORTEDCURVE */
+
 /* Define to 1 if you have the <cyassl/error-ssl.h> header file. */
 /* #undef HAVE_CYASSL_ERROR_SSL_H */
 
+/* Define to 1 if you have the `CyaSSL_get_peer_certificate' function. */
+/* #undef HAVE_CYASSL_GET_PEER_CERTIFICATE */
+
 /* Define to 1 if you have the <cyassl/options.h> header file. */
 /* #undef HAVE_CYASSL_OPTIONS_H */
-
-/* Define to 1 if you have the `DES_set_odd_parity' function. */
-#define HAVE_DES_SET_ODD_PARITY 1
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #define HAVE_DLFCN_H 1
@@ -188,7 +194,7 @@
 #define HAVE_FREEADDRINFO 1
 
 /* Define to 1 if you have the freeifaddrs function. */
-/* #undef HAVE_FREEIFADDRS */
+#define HAVE_FREEIFADDRS 1
 
 /* Define to 1 if you have the fsetxattr function. */
 #define HAVE_FSETXATTR 1
@@ -248,7 +254,7 @@
 #define HAVE_GETHOSTNAME 1
 
 /* Define to 1 if you have a working getifaddrs function. */
-/* #undef HAVE_GETIFADDRS */
+#define HAVE_GETIFADDRS 1
 
 /* Define to 1 if you have the getnameinfo function. */
 #define HAVE_GETNAMEINFO 1
@@ -282,6 +288,10 @@
 
 /* Define to 1 if you have a working gmtime_r function. */
 #define HAVE_GMTIME_R 1
+
+/* Define to 1 if you have the `gnutls_certificate_set_x509_key_file2'
+   function. */
+/* #undef HAVE_GNUTLS_CERTIFICATE_SET_X509_KEY_FILE2 */
 
 /* if you have the function gnutls_srp_verifier */
 /* #undef HAVE_GNUTLS_SRP */
@@ -317,7 +327,7 @@
 /* #undef HAVE_IDN_FREE_H */
 
 /* Define to 1 if you have the <ifaddrs.h> header file. */
-/* #undef HAVE_IFADDRS_H */
+#define HAVE_IFADDRS_H 1
 
 /* Define to 1 if you have the `if_nametoindex' function. */
 #define HAVE_IF_NAMETOINDEX 1
@@ -394,9 +404,6 @@
 
 /* Define to 1 if you have the `idn' library (-lidn). */
 /* #undef HAVE_LIBIDN */
-
-/* Define to 1 if you have the `resolve' library (-lresolve). */
-/* #undef HAVE_LIBRESOLVE */
 
 /* Define to 1 if using libressl. */
 /* #undef HAVE_LIBRESSL */
@@ -524,7 +531,7 @@
 #define HAVE_PWD_H 1
 
 /* Define to 1 if you have the `RAND_egd' function. */
-/* #undef HAVE_RAND_EGD */
+#define HAVE_RAND_EGD 1
 
 /* Define to 1 if you have the `RAND_screen' function. */
 /* #undef HAVE_RAND_SCREEN */
@@ -563,7 +570,7 @@
 /* #undef HAVE_SETSOCKOPT_SO_NONBLOCK */
 
 /* Define to 1 if you have the <sgtty.h> header file. */
-#define HAVE_SGTTY_H 1
+/* #undef HAVE_SGTTY_H */
 
 /* Define to 1 if you have the sigaction function. */
 #define HAVE_SIGACTION 1
@@ -763,6 +770,18 @@
 /* Define to 1 if you have the winsock.h header file. */
 /* #undef HAVE_WINSOCK_H */
 
+/* Define to 1 if you have the `wolfSSLv3_client_method' function. */
+/* #undef HAVE_WOLFSSLV3_CLIENT_METHOD */
+
+/* Define to 1 if you have the `wolfSSL_CTX_UseSupportedCurve' function. */
+/* #undef HAVE_WOLFSSL_CTX_USESUPPORTEDCURVE */
+
+/* Define to 1 if you have the `wolfSSL_get_peer_certificate' function. */
+/* #undef HAVE_WOLFSSL_GET_PEER_CERTIFICATE */
+
+/* Define to 1 if you have the `wolfSSL_UseALPN' function. */
+/* #undef HAVE_WOLFSSL_USEALPN */
+
 /* Define this symbol if your OS supports changing the contents of argv */
 /* #undef HAVE_WRITABLE_ARGV */
 
@@ -807,7 +826,7 @@
 #define PACKAGE "curl"
 
 /* Define to the address where bug reports for this package should be sent. */
-#define PACKAGE_BUGREPORT "a suitable curl mailing list: http://curl.haxx.se/mail/"
+#define PACKAGE_BUGREPORT "a suitable curl mailing list: https://curl.haxx.se/mail/"
 
 /* Define to the full name of this package. */
 #define PACKAGE_NAME "curl"
@@ -881,9 +900,6 @@
 /* The size of `long long', as computed by sizeof. */
 /* #undef SIZEOF_LONG_LONG */
 
-/* The size of `off_t', as computed by sizeof. */
-#define SIZEOF_OFF_T 8
-
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1
 
@@ -899,7 +915,7 @@
 /* if axTLS is enabled */
 /* #undef USE_AXTLS */
 
-/* if CyaSSL is enabled */
+/* if CyaSSL/WolfSSL is enabled */
 /* #undef USE_CYASSL */
 
 /* to enable iOS/Mac OS X native SSL/TLS support */
@@ -911,6 +927,9 @@
 /* if GnuTLS uses nettle as crypto backend */
 /* #undef USE_GNUTLS_NETTLE */
 
+/* PSL support enabled */
+/* #undef USE_LIBPSL */
+
 /* if librtmp is in use */
 /* #undef USE_LIBRTMP */
 
@@ -919,6 +938,9 @@
 
 /* If you want to build curl with the built-in manual */
 #define USE_MANUAL 1
+
+/* if mbedTLS is enabled */
+/* #undef USE_MBEDTLS */
 
 /* Define to enable metalink support */
 /* #undef USE_METALINK */
