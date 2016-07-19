@@ -16,6 +16,9 @@ curl_CFLAGS := -Wpointer-arith -Wwrite-strings -Wunused -Winline \
 	-Wendif-labels -Wstrict-prototypes -Wdeclaration-after-statement \
 	-Wno-system-headers -DHAVE_CONFIG_H -DOS='$(version_string)' -Werror
 
+# Bug: http://b/29823425 Disable -Wvarargs for Clang update to r271374
+curl_CFLAGS += -Wno-varargs
+
 curl_includes := \
 	$(LOCAL_PATH)/include/ \
 	$(LOCAL_PATH)/lib
