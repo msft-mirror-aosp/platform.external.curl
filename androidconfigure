@@ -19,6 +19,7 @@ CFLAGS=(
   "-isystem ${T}/external/libcxx/include"
   "-isystem ${T}/bionic/libc/include/"
   "-isystem ${T}/bionic/libc/arch-arm/include"
+  "-isystem ${T}/bionic/libc/kernel/android/uapi/"
   "-isystem ${T}/bionic/libc/kernel/uapi/"
   "-isystem ${T}/bionic/libc/kernel/uapi/asm-arm/"
   "-isystem ${T}/bionic/libm/include"
