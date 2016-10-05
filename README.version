@@ -1,6 +1,6 @@
-URL: https://curl.haxx.se/download/curl-7.49.1.tar.gz
-Version: 7.49.1
-Upstream commit: cf93a7b364a70b56150cf6ea77492b799ec02a45
+URL: https://curl.haxx.se/download/curl-7.50.1.tar.gz
+Version: 7.50.1
+Upstream commit: f2cb3a01192d36395d16acec6cdb93446ca6fd45
 License: MIT
 License File: NOTICE
 BugComponent: 31714
