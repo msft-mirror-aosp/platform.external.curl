@@ -26,13 +26,13 @@
 RECEIVING COOKIE INFORMATION
 ============================
 
-struct CookieInfo *Curl_cookie_init(struct SessionHandle *data,
+struct CookieInfo *Curl_cookie_init(struct Curl_easy *data,
                     const char *file, struct CookieInfo *inc, bool newsession);
 
         Inits a cookie struct to store data in a local file. This is always
         called before any cookies are set.
 
-struct Cookie *Curl_cookie_add(struct SessionHandle *data,
+struct Cookie *Curl_cookie_add(struct Curl_easy *data,
                  struct CookieInfo *c, bool httpheader, char *lineptr,
                  const char *domain, const char *path);
 
@@ -259,7 +259,7 @@ static char *sanitize_cookie_path(const char *cookie_path)
  *
  * NOTE: OOM or cookie parsing failures are ignored.
  */
-void Curl_cookie_loadfiles(struct SessionHandle *data)
+void Curl_cookie_loadfiles(struct Curl_easy *data)
 {
   struct curl_slist *list = data->change.cookielist;
   if(list) {
@@ -361,7 +361,7 @@ static bool isip(const char *domain)
  ***************************************************************************/
 
 struct Cookie *
-Curl_cookie_add(struct SessionHandle *data,
+Curl_cookie_add(struct Curl_easy *data,
                 /* The 'data' pointer here may be NULL at times, and thus
                    must only be used very carefully for things that can deal
                    with data being NULL. Such as infof() and similar */
@@ -912,7 +912,7 @@ Curl_cookie_add(struct SessionHandle *data,
  *
  * Returns NULL on out of memory. Invalid cookies are ignored.
  ****************************************************************************/
-struct CookieInfo *Curl_cookie_init(struct SessionHandle *data,
+struct CookieInfo *Curl_cookie_init(struct Curl_easy *data,
                                     const char *file,
                                     struct CookieInfo *inc,
                                     bool newsession)
@@ -1313,7 +1313,7 @@ static int cookie_output(struct CookieInfo *c, const char *dumphere)
       fprintf(out, "#\n# Fatal libcurl error\n");
       if(!use_stdout)
         fclose(out);
-        return 1;
+      return 1;
     }
     fprintf(out, "%s\n", format_ptr);
     free(format_ptr);
@@ -1325,7 +1325,7 @@ static int cookie_output(struct CookieInfo *c, const char *dumphere)
   return 0;
 }
 
-struct curl_slist *Curl_cookie_list(struct SessionHandle *data)
+struct curl_slist *Curl_cookie_list(struct Curl_easy *data)
 {
   struct curl_slist *list = NULL;
   struct curl_slist *beg;
@@ -1356,7 +1356,7 @@ struct curl_slist *Curl_cookie_list(struct SessionHandle *data)
   return list;
 }
 
-void Curl_flush_cookies(struct SessionHandle *data, int cleanup)
+void Curl_flush_cookies(struct Curl_easy *data, int cleanup)
 {
   if(data->set.str[STRING_COOKIEJAR]) {
     if(data->change.cookielist) {
