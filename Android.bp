@@ -35,6 +35,9 @@ cc_library {
     defaults: ["curl_common_defaults"],
     export_include_dirs: ["include"],
     host_supported: true,
+    cflags: [
+        "-DBUILDING_LIBCURL",
+    ],
     srcs:[
         "lib/file.c",
         "lib/timeval.c",
