@@ -184,6 +184,9 @@ cc_library {
                 ],
             },
         },
+        linux: {
+            host_ldlibs: ["-lrt"],
+        },
         android: {
             shared: {
                 shared_libs: [
