@@ -26,7 +26,6 @@ cc_defaults {
         // Bug: http://b/29823425 Disable -Wvarargs for Clang update to r271374
         "-Wno-varargs",
     ],
-    clang: true,
     local_include_dirs: ["include", "lib"],
 }
 
