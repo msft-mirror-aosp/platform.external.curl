@@ -206,36 +206,42 @@ static void install_signal_handlers(void)
 {
 #ifdef SIGHUP
   /* ignore SIGHUP signal */
-  if((old_sighup_handler = signal(SIGHUP, SIG_IGN)) == SIG_ERR)
+  old_sighup_handler = signal(SIGHUP, SIG_IGN);
+  if(old_sighup_handler == SIG_ERR)
     logmsg("cannot install SIGHUP handler: %s", strerror(errno));
 #endif
 #ifdef SIGPIPE
   /* ignore SIGPIPE signal */
-  if((old_sigpipe_handler = signal(SIGPIPE, SIG_IGN)) == SIG_ERR)
+  old_sigpipe_handler = signal(SIGPIPE, SIG_IGN);
+  if(old_sigpipe_handler == SIG_ERR)
     logmsg("cannot install SIGPIPE handler: %s", strerror(errno));
 #endif
 #ifdef SIGALRM
   /* ignore SIGALRM signal */
-  if((old_sigalrm_handler = signal(SIGALRM, SIG_IGN)) == SIG_ERR)
+  old_sigalrm_handler = signal(SIGALRM, SIG_IGN);
+  if(old_sigalrm_handler == SIG_ERR)
     logmsg("cannot install SIGALRM handler: %s", strerror(errno));
 #endif
 #ifdef SIGINT
   /* handle SIGINT signal with our exit_signal_handler */
-  if((old_sigint_handler = signal(SIGINT, exit_signal_handler)) == SIG_ERR)
+  old_sigint_handler = signal(SIGINT, exit_signal_handler);
+  if(old_sigint_handler == SIG_ERR)
     logmsg("cannot install SIGINT handler: %s", strerror(errno));
   else
     siginterrupt(SIGINT, 1);
 #endif
 #ifdef SIGTERM
   /* handle SIGTERM signal with our exit_signal_handler */
-  if((old_sigterm_handler = signal(SIGTERM, exit_signal_handler)) == SIG_ERR)
+  old_sigterm_handler = signal(SIGTERM, exit_signal_handler);
+  if(old_sigterm_handler == SIG_ERR)
     logmsg("cannot install SIGTERM handler: %s", strerror(errno));
   else
     siginterrupt(SIGTERM, 1);
 #endif
 #if defined(SIGBREAK) && defined(WIN32)
   /* handle SIGBREAK signal with our exit_signal_handler */
-  if((old_sigbreak_handler = signal(SIGBREAK, exit_signal_handler)) == SIG_ERR)
+  old_sigbreak_handler = signal(SIGBREAK, exit_signal_handler);
+  if(old_sigbreak_handler == SIG_ERR)
     logmsg("cannot install SIGBREAK handler: %s", strerror(errno));
   else
     siginterrupt(SIGBREAK, 1);
@@ -399,7 +405,8 @@ static ssize_t fullwrite(int filedes, const void *buffer, size_t nbytes)
   ssize_t nwrite = 0;
 
   do {
-    wc = write(filedes, (unsigned char *)buffer + nwrite, nbytes - nwrite);
+    wc = write(filedes, (const unsigned char *)buffer + nwrite,
+               nbytes - nwrite);
 
     if(got_exit_signal) {
       logmsg("signalled to die");
@@ -542,7 +549,7 @@ static DWORD WINAPI select_ws_wait_thread(LPVOID lpParameter)
     free(data);
   }
   else
-    return -1;
+    return (DWORD)-1;
 
   /* retrieve the type of file to wait on */
   type = GetFileType(handle);
@@ -1283,7 +1290,7 @@ static curl_socket_t sockdaemon(curl_socket_t sock,
       sclose(sock);
       return CURL_SOCKET_BAD;
     }
-    switch (localaddr.sa.sa_family) {
+    switch(localaddr.sa.sa_family) {
     case AF_INET:
       *listenport = ntohs(localaddr.sa4.sin_port);
       break;
@@ -1332,7 +1339,7 @@ int main(int argc, char *argv[])
   curl_socket_t sock = CURL_SOCKET_BAD;
   curl_socket_t msgsock = CURL_SOCKET_BAD;
   int wrotepidfile = 0;
-  char *pidname= (char *)".sockfilt.pid";
+  const char *pidname = ".sockfilt.pid";
   bool juggle_again;
   int rc;
   int error;
