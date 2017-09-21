@@ -58,7 +58,8 @@ int test(char *URL)
     return TEST_ERR_MAJOR_BAD;
   }
 
-  if((curl = curl_easy_init()) == NULL) {
+  curl = curl_easy_init();
+  if(!curl) {
     fprintf(stderr, "curl_easy_init() failed\n");
     curl_global_cleanup();
     return TEST_ERR_MAJOR_BAD;
@@ -76,7 +77,7 @@ int test(char *URL)
 #endif
 
   /* Set the expected POST size */
-  test_setopt(curl, CURLOPT_POSTFIELDSIZE, data_size);
+  test_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)data_size);
   test_setopt(curl, CURLOPT_POSTFIELDS, data);
 
   /* we want to use our own progress function */
