@@ -95,12 +95,13 @@ static int do_one_request(CURLM *m, char *URL, char *resolve)
     abort_on_test_timeout();
   }
 
-  while((msg = curl_multi_info_read(m, &msgs_left))) {
-    if(msg->msg == CURLMSG_DONE && msg->easy_handle == curls) {
+  do {
+    msg = curl_multi_info_read(m, &msgs_left);
+    if(msg && msg->msg == CURLMSG_DONE && msg->easy_handle == curls) {
       res = msg->data.result;
       break;
     }
-  }
+  } while(msg);
 
 test_cleanup:
 
@@ -136,7 +137,8 @@ int test(char *URL)
              "http://testserver.example.com:%s/%s%04d", port, path, i);
 
     /* second request must succeed like the first one */
-    if((res = do_one_request(multi, target_url, dns_entry)))
+    res = do_one_request(multi, target_url, dns_entry);
+    if(res)
       goto test_cleanup;
 
     if(i < count)

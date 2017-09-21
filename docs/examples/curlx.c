@@ -101,7 +101,7 @@
 static const char *curlx_usage[]={
   "usage: curlx args\n",
   " -p12 arg         - tia  file ",
-  " -envpass arg     - environement variable which content the tia private"
+  " -envpass arg     - environment variable which content the tia private"
   " key password",
   " -out arg         - output file (response)- default stdout",
   " -in arg          - input file (request)- default stdin",
@@ -200,7 +200,8 @@ static int ssl_app_verify_callback(X509_STORE_CTX *ctx, void *arg)
     if(p->verbose > 1)
       X509_print_ex(p->errorbio, ctx->cert, 0, 0);
 
-    if(accessinfo = my_get_ext(ctx->cert, p->accesstype, NID_sinfo_access)) {
+    accessinfo = my_get_ext(ctx->cert, p->accesstype, NID_sinfo_access);
+    if(accessinfo) {
       if(p->verbose)
         BIO_printf(p->errorbio, "Setting URL from SIA to: %s\n", accessinfo);
 
@@ -293,7 +294,7 @@ int main(int argc, char **argv)
   binaryptr = malloc(tabLength);
 
   p.verbose = 0;
-  p.errorbio = BIO_new_fp (stderr, BIO_NOCLOSE);
+  p.errorbio = BIO_new_fp(stderr, BIO_NOCLOSE);
 
   curl_global_init(CURL_GLOBAL_DEFAULT);
 
@@ -355,7 +356,8 @@ int main(int argc, char **argv)
     }
     else if(strcmp(*args, "-accesstype") == 0) {
       if(args[1]) {
-        if((p.accesstype = OBJ_obj2nid(OBJ_txt2obj(*++args, 0))) == 0)
+        p.accesstype = OBJ_obj2nid(OBJ_txt2obj(*++args, 0));
+        if(p.accesstype == 0)
           badarg=1;
       }
       else
@@ -408,18 +410,21 @@ int main(int argc, char **argv)
   }
 
 
-  p.errorbio = BIO_new_fp (stderr, BIO_NOCLOSE);
+  p.errorbio = BIO_new_fp(stderr, BIO_NOCLOSE);
 
-  if(!(p.curl = curl_easy_init())) {
+  p.curl = curl_easy_init();
+  if(!p.curl) {
     BIO_printf(p.errorbio, "Cannot init curl lib\n");
     goto err;
   }
 
-  if(!(p12bio = BIO_new_file(p.p12file, "rb"))) {
+  p12bio = BIO_new_file(p.p12file, "rb");
+  if(!p12bio) {
     BIO_printf(p.errorbio, "Error opening P12 file %s\n", p.p12file);
     goto err;
   }
-  if(!(p.p12 = d2i_PKCS12_bio (p12bio, NULL))) {
+  p.p12 = d2i_PKCS12_bio(p12bio, NULL);
+  if(!p.p12) {
     BIO_printf(p.errorbio, "Cannot decode P12 structure %s\n", p.p12file);
     goto err;
   }
@@ -447,16 +452,19 @@ int main(int argc, char **argv)
   }
   else if(p.accesstype != 0) { /* see whether we can find an AIA or SIA for a
                                   given access type */
-    if(!(serverurl = my_get_ext(p.usercert, p.accesstype, NID_info_access))) {
+    serverurl = my_get_ext(p.usercert, p.accesstype, NID_info_access);
+    if(!serverurl) {
       int j=0;
       BIO_printf(p.errorbio, "no service URL in user cert "
                  "cherching in others certificats\n");
       for(j=0; j<sk_X509_num(p.ca); j++) {
-        if((serverurl = my_get_ext(sk_X509_value(p.ca, j), p.accesstype,
-                                    NID_info_access)))
+        serverurl = my_get_ext(sk_X509_value(p.ca, j), p.accesstype,
+                               NID_info_access);
+        if(serverurl)
           break;
-        if((serverurl = my_get_ext(sk_X509_value(p.ca, j), p.accesstype,
-                                    NID_sinfo_access)))
+        serverurl = my_get_ext(sk_X509_value(p.ca, j), p.accesstype,
+                               NID_sinfo_access);
+        if(serverurl)
           break;
       }
     }
@@ -505,7 +513,7 @@ int main(int argc, char **argv)
 
   {
     int lu; int i=0;
-    while((lu = BIO_read (in, &binaryptr[i], tabLength-i)) >0) {
+    while((lu = BIO_read(in, &binaryptr[i], tabLength-i)) >0) {
       i+=lu;
       if(i== tabLength) {
         tabLength+=100;
