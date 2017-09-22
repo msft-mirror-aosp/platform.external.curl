@@ -404,12 +404,12 @@ static int parsedate(const char *date, time_t *output)
         int error;
         int old_errno;
 
-        old_errno = ERRNO;
-        SET_ERRNO(0);
+        old_errno = errno;
+        errno = 0;
         lval = strtol(date, &end, 10);
-        error = ERRNO;
-        if(error != old_errno)
-          SET_ERRNO(old_errno);
+        error = errno;
+        if(errno != old_errno)
+          errno = old_errno;
 
         if(error)
           return PARSEDATE_FAIL;
@@ -493,11 +493,13 @@ static int parsedate(const char *date, time_t *output)
     /* lacks vital info, fail */
     return PARSEDATE_FAIL;
 
+#if SIZEOF_TIME_T < 5
   /* 32 bit time_t can only hold dates to the beginning of 2038 */
-  if(sizeof(time_t) < 5 && yearnum > 2037) {
+  if(yearnum > 2037) {
     *output = 0x7fffffff;
     return PARSEDATE_LATER;
   }
+#endif
 
   if(yearnum < 1970) {
     *output = 0;

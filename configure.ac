@@ -5,7 +5,7 @@
 #                            | (__| |_| |  _ <| |___
 #                             \___|\___/|_| \_\_____|
 #
-# Copyright (C) 1998 - 2016, Daniel Stenberg, <daniel@haxx.se>, et al.
+# Copyright (C) 1998 - 2017, Daniel Stenberg, <daniel@haxx.se>, et al.
 #
 # This software is licensed as described in the file COPYING, which
 # you should have received as part of this distribution. The terms
@@ -31,12 +31,12 @@ XC_OVR_ZZ60
 CURL_OVERRIDE_AUTOCONF
 
 dnl configure script copyright
-AC_COPYRIGHT([Copyright (c) 1998 - 2016 Daniel Stenberg, <daniel@haxx.se>
+AC_COPYRIGHT([Copyright (c) 1998 - 2017 Daniel Stenberg, <daniel@haxx.se>
 This configure script may be copied, distributed and modified under the
 terms of the curl license; see COPYING for more details])
 
 AC_CONFIG_SRCDIR([lib/urldata.h])
-AC_CONFIG_HEADERS(lib/curl_config.h include/curl/curlbuild.h)
+AC_CONFIG_HEADERS(lib/curl_config.h)
 AC_CONFIG_MACRO_DIR([m4])
 AM_MAINTAINER_MODE
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
@@ -51,6 +51,7 @@ CURL_CHECK_OPTION_ARES
 CURL_CHECK_OPTION_RT
 
 XC_CHECK_PATH_SEPARATOR
+AX_CODE_COVERAGE
 
 #
 # save the configure arguments
@@ -120,13 +121,8 @@ AC_SUBST([AR])
 
 AC_SUBST(libext)
 
-dnl Remove non-configure distributed curlbuild.h
-if test -f ${srcdir}/include/curl/curlbuild.h; then
-  rm -f ${srcdir}/include/curl/curlbuild.h
-fi
-
 dnl figure out the libcurl version
-CURLVERSION=`$SED -ne 's/^#define LIBCURL_VERSION "\(.*\)"/\1/p' ${srcdir}/include/curl/curlver.h`
+CURLVERSION=`$SED -ne 's/^#define LIBCURL_VERSION "\(.*\)".*/\1/p' ${srcdir}/include/curl/curlver.h`
 XC_CHECK_PROG_CC
 XC_AUTOMAKE
 AC_MSG_CHECKING([curl version])
@@ -136,7 +132,7 @@ AC_SUBST(CURLVERSION)
 
 dnl
 dnl we extract the numerical version for curl-config only
-VERSIONNUM=`$SED -ne 's/^#define LIBCURL_VERSION_NUM 0x\(.*\)/\1/p' ${srcdir}/include/curl/curlver.h`
+VERSIONNUM=`$SED -ne 's/^#define LIBCURL_VERSION_NUM 0x\([0-9A-Fa-f]*\).*/\1/p' ${srcdir}/include/curl/curlver.h`
 AC_SUBST(VERSIONNUM)
 
 dnl Solaris pkgadd support definitions
@@ -176,6 +172,14 @@ dnl Save some initial values the user might have provided
 dnl
 INITIAL_LDFLAGS=$LDFLAGS
 INITIAL_LIBS=$LIBS
+
+dnl
+dnl Detect the canonical host and target build environment
+dnl
+
+AC_CANONICAL_HOST
+dnl Get system canonical name
+AC_DEFINE_UNQUOTED(OS, "${host}", [cpu-machine-OS])
 
 dnl Checks for programs.
 
@@ -362,6 +366,7 @@ AC_HELP_STRING([--disable-http],[Disable HTTP support]),
   no)
        AC_MSG_RESULT(no)
        AC_DEFINE(CURL_DISABLE_HTTP, 1, [to disable HTTP])
+       disable_http="yes"
        AC_MSG_WARN([disable HTTP disables FTP over proxy and RTSP])
        AC_SUBST(CURL_DISABLE_HTTP, [1])
        AC_DEFINE(CURL_DISABLE_RTSP, 1, [to disable RTSP])
@@ -885,17 +890,16 @@ else
     OPT_ZLIB=""
   fi
 
-  CURL_CHECK_PKGCONFIG(zlib)
-
-  if test "$PKGCONFIG" != "no" ; then
-    LIBS="`$PKGCONFIG --libs-only-l zlib` $LIBS"
-    LDFLAGS="`$PKGCONFIG --libs-only-L zlib` $LDFLAGS"
-    CPPFLAGS="`$PKGCONFIG --cflags-only-I zlib` $CPPFLAGS"
-    OPT_ZLIB=""
-    HAVE_LIBZ="1"
-  fi
-
   if test -z "$OPT_ZLIB" ; then
+    CURL_CHECK_PKGCONFIG(zlib)
+
+    if test "$PKGCONFIG" != "no" ; then
+      LIBS="`$PKGCONFIG --libs-only-l zlib` $LIBS"
+      LDFLAGS="$LDFLAGS `$PKGCONFIG --libs-only-L zlib`"
+      CPPFLAGS="$CPPFLAGS `$PKGCONFIG --cflags-only-I zlib`"
+      OPT_ZLIB=""
+      HAVE_LIBZ="1"
+    fi
 
     if test -z "$HAVE_LIBZ"; then
 
@@ -1510,52 +1514,50 @@ if test "$curl_ssl_msg" = "$init_ssl_msg" && test X"$OPT_SSL" != Xno; then
      AC_CHECK_LIB(crypto, HMAC_Init_ex,[
        HAVECRYPTO="yes"
        LIBS="-lcrypto $LIBS"], [
-       LDFLAGS="$CLEANLDFLAGS"
-       CPPFLAGS="$CLEANCPPFLAGS"
-       LIBS="$CLEANLIBS"
+
+       dnl still no, but what about with -ldl?
+       AC_MSG_CHECKING([OpenSSL linking with -ldl])
+       LIBS="-ldl $LIBS"
+       AC_TRY_LINK(
+       [
+         #include <openssl/err.h>
+       ],
+       [
+         ERR_clear_error();
+       ],
+       [
+         AC_MSG_RESULT(yes)
+         HAVECRYPTO="yes"
+       ],
+       [
+         AC_MSG_RESULT(no)
+         dnl ok, so what about bouth -ldl and -lpthread?
+
+         AC_MSG_CHECKING([OpenSSL linking with -ldl and -lpthread])
+         LIBS="-lpthread $LIBS"
+         AC_TRY_LINK(
+         [
+           #include <openssl/err.h>
+         ],
+         [
+           ERR_clear_error();
+         ],
+         [
+           AC_MSG_RESULT(yes)
+           HAVECRYPTO="yes"
+         ],
+         [
+           AC_MSG_RESULT(no)
+           LDFLAGS="$CLEANLDFLAGS"
+           CPPFLAGS="$CLEANCPPFLAGS"
+           LIBS="$CLEANLIBS"
+
+         ])
+
        ])
-    ])
 
-
-  if test X"$HAVECRYPTO" = X"yes"; then
-     AC_MSG_CHECKING([OpenSSL linking without -ldl])
-     saved_libs=$LIBS
-     AC_TRY_LINK(
-        [
-          #include <openssl/evp.h>
-        ],
-        [
-          SSLeay_add_all_algorithms();
-        ],
-        [
-          AC_MSG_RESULT(yes)
-          LIBS="$saved_libs"
-        ],
-        [
-          AC_MSG_RESULT(no)
-          AC_MSG_CHECKING([OpenSSL linking with -ldl])
-          LIBS="-ldl $LIBS"
-          AC_TRY_LINK(
-          [
-            #include <openssl/evp.h>
-          ],
-          [
-            SSLeay_add_all_algorithms();
-          ],
-          [
-            AC_MSG_RESULT(yes)
-            LIBS="$saved_libs -ldl"
-          ],
-          [
-            AC_MSG_RESULT(no)
-            LIBS="$saved_libs"
-          ]
-          )
-
-        ]
-     )
-
-  fi
+     ])
+  ])
 
   if test X"$HAVECRYPTO" = X"yes"; then
     dnl This is only reasonable to do if crypto actually is there: check for
@@ -1833,13 +1835,13 @@ if test "$curl_ssl_msg" = "$init_ssl_msg"; then
           dnl linker doesn't search through, we need to add it to
           dnl LD_LIBRARY_PATH to prevent further configure tests to fail
           dnl due to this
-          if test "x$cross_compiling" != "xyes"; then
+          if test "x$cross_compiling" != "xyes"; then 
             LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$gtlslib"
             export LD_LIBRARY_PATH
             AC_MSG_NOTICE([Added $gtlslib to LD_LIBRARY_PATH])
           fi
         fi
-        AC_CHECK_FUNCS(gnutls_certificate_set_x509_key_file2)
+        AC_CHECK_FUNCS([gnutls_certificate_set_x509_key_file2 gnutls_alpn_set_protocols gnutls_ocsp_req_init])
       fi
 
     fi
@@ -2488,8 +2490,8 @@ if test X"$OPT_LIBMETALINK" != Xno; then
     clean_CPPFLAGS="$CPPFLAGS"
     clean_LDFLAGS="$LDFLAGS"
     clean_LIBS="$LIBS"
-    CPPFLAGS="$addcflags $clean_CPPFLAGS"
-    LDFLAGS="$addld $clean_LDFLAGS"
+    CPPFLAGS="$clean_CPPFLAGS $addcflags"
+    LDFLAGS="$clean_LDFLAGS $addld"
     LIBS="$addlib $clean_LIBS"
     AC_MSG_CHECKING([if libmetalink is recent enough])
     AC_LINK_IFELSE([
@@ -2573,7 +2575,7 @@ if test X"$OPT_LIBSSH2" != Xno; then
     DIR_SSH2=${PREFIX_SSH2}/lib$libsuff
   fi
 
-  LDFLAGS="$LD_SSH2 $LDFLAGS"
+  LDFLAGS="$LDFLAGS $LD_SSH2"
   CPPFLAGS="$CPPFLAGS $CPP_SSH2"
   LIBS="$LIB_SSH2 $LIBS"
 
@@ -2652,6 +2654,7 @@ if test X"$OPT_LIBRTMP" != Xno; then
     ;;
   *)
     dnl use the given --with-librtmp spot
+    LIB_RTMP="-lrtmp"
     PREFIX_RTMP=$OPT_LIBRTMP
     ;;
   esac
@@ -2779,6 +2782,7 @@ if test "$want_winidn" = "yes"; then
   clean_LDFLAGS="$LDFLAGS"
   clean_LIBS="$LIBS"
   WINIDN_LIBS="-lnormaliz"
+  WINIDN_CPPFLAGS="-DWINVER=0x0600"
   #
   if test "$want_winidn_path" != "default"; then
     dnl path has been specified
@@ -2788,13 +2792,17 @@ if test "$want_winidn" = "yes"; then
     WINIDN_DIR="$want_winidn_path/lib$libsuff"
   fi
   #
-  CPPFLAGS="$WINIDN_CPPFLAGS $CPPFLAGS"
-  LDFLAGS="$WINIDN_LDFLAGS $LDFLAGS"
+  CPPFLAGS="$CPPFLAGS $WINIDN_CPPFLAGS"
+  LDFLAGS="$LDFLAGS $WINIDN_LDFLAGS"
   LIBS="$WINIDN_LIBS $LIBS"
   #
   AC_MSG_CHECKING([if IdnToUnicode can be linked])
   AC_LINK_IFELSE([
-    AC_LANG_FUNC_LINK_TRY([IdnToUnicode])
+    AC_LANG_PROGRAM([[
+      #include <windows.h>
+    ]],[[
+      IdnToUnicode(0, NULL, 0, NULL, 0);
+    ]])
   ],[
     AC_MSG_RESULT([yes])
     tst_links_winidn="yes"
@@ -2822,7 +2830,7 @@ dnl **********************************************************************
 
 AC_MSG_CHECKING([whether to build with libidn2])
 OPT_IDN="default"
-AC_ARG_WITH(libidn,
+AC_ARG_WITH(libidn2,
 AC_HELP_STRING([--with-libidn2=PATH],[Enable libidn2 usage])
 AC_HELP_STRING([--without-libidn2],[Disable libidn2 usage]),
   [OPT_IDN=$withval])
@@ -2904,8 +2912,8 @@ if test "$want_idn" = "yes"; then
     AC_MSG_NOTICE([IDN_DIR: "$IDN_DIR"])
   fi
   #
-  CPPFLAGS="$IDN_CPPFLAGS $CPPFLAGS"
-  LDFLAGS="$IDN_LDFLAGS $LDFLAGS"
+  CPPFLAGS="$CPPFLAGS $IDN_CPPFLAGS"
+  LDFLAGS="$LDFLAGS $IDN_LDFLAGS"
   LIBS="$IDN_LIBS $LIBS"
   #
   AC_MSG_CHECKING([if idn2_lookup_ul can be linked])
@@ -2951,6 +2959,12 @@ dnl Check for nghttp2
 dnl **********************************************************************
 
 OPT_H2="yes"
+
+if test "x$disable_http" = "xyes"; then
+  # without HTTP, nghttp2 is no use
+  OPT_H2="no"
+fi
+
 AC_ARG_WITH(nghttp2,
 AC_HELP_STRING([--with-nghttp2=PATH],[Enable nghttp2 usage])
 AC_HELP_STRING([--without-nghttp2],[Disable nghttp2 usage]),
@@ -3140,6 +3154,12 @@ AC_HEADER_TIME
 CURL_CHECK_STRUCT_TIMEVAL
 CURL_VERIFY_RUNTIMELIBS
 
+AC_CHECK_SIZEOF(size_t)
+AC_CHECK_SIZEOF(long)
+AC_CHECK_SIZEOF(int)
+AC_CHECK_SIZEOF(short)
+CURL_CONFIGURE_LONG
+AC_CHECK_SIZEOF(time_t)
 AC_CHECK_SIZEOF(off_t)
 
 soname_bump=no
@@ -3266,24 +3286,20 @@ case $host in
     ;;
 esac
 
-AC_CHECK_FUNCS([fork \
-  geteuid \
+AC_CHECK_FUNCS([geteuid \
   getpass_r \
   getppid \
-  getprotobyname \
   getpwuid \
   getpwuid_r \
   getrlimit \
   gettimeofday \
   if_nametoindex \
-  inet_addr \
-  perror \
   pipe \
   setlocale \
   setmode \
   setrlimit \
-  uname \
-  utime
+  utime \
+  utimes
 ],[
 ],[
   func="$ac_func"
@@ -3386,14 +3402,52 @@ else
 fi
 AM_CONDITIONAL(BUILD_LIBHOSTNAME, test x$build_libhostname = xyes)
 
-CURL_CHECK_OPTION_THREADED_RESOLVER
-
-if test "x$want_thres" = xyes && test "x$want_ares" = xyes; then
-  AC_MSG_ERROR(
-[Options --enable-threaded-resolver and --enable-ares are mutually exclusive])
+if test "x$want_ares" != xyes; then
+  CURL_CHECK_OPTION_THREADED_RESOLVER
 fi
 
-if test "$want_thres" = "yes" && test "$dontwant_rt" = "no"; then
+dnl ************************************************************
+dnl disable POSIX threads
+dnl
+AC_MSG_CHECKING([whether to use POSIX threads for threaded resolver])
+AC_ARG_ENABLE(pthreads,
+AC_HELP_STRING([--enable-pthreads],
+               [Enable POSIX threads (default for threaded resolver)])
+AC_HELP_STRING([--disable-pthreads],[Disable POSIX threads]),
+[ case "$enableval" in
+  no)  AC_MSG_RESULT(no)
+       want_pthreads=no
+       ;;
+  *)   AC_MSG_RESULT(yes)
+       want_pthreads=yes
+       ;;
+  esac ], [
+       AC_MSG_RESULT(auto)
+       want_pthreads=auto
+       ]
+)
+
+dnl turn off pthreads if rt is disabled
+if test "$want_pthreads" != "no"; then
+  if test "$want_pthreads" = "yes" && test "$dontwant_rt" = "yes"; then
+    AC_MSG_ERROR([options --enable-pthreads and --disable-rt are mutually exclusive])
+  fi
+  if test "$dontwant_rt" != "no"; then
+    dnl if --enable-pthreads was explicit then warn it's being ignored
+    if test "$want_pthreads" = "yes"; then
+      AC_MSG_WARN([--enable-pthreads Ignored since librt is disabled.])
+    fi
+    want_pthreads=no
+  fi
+fi
+
+dnl turn off pthreads if no threaded resolver
+if test "$want_pthreads" != "no" && test "$want_thres" != "yes"; then
+  want_pthreads=no
+fi
+
+dnl detect pthreads
+if test "$want_pthreads" != "no"; then
   AC_CHECK_HEADER(pthread.h,
     [ AC_DEFINE(HAVE_PTHREAD_H, 1, [if you have <pthread.h>])
       save_CFLAGS="$CFLAGS"
@@ -3415,9 +3469,22 @@ if test "$want_thres" = "yes" && test "$dontwant_rt" = "no"; then
         AC_DEFINE(USE_THREADS_POSIX, 1, [if you want POSIX threaded DNS lookup])
         curl_res_msg="POSIX threaded"
       fi
-
-
   ])
+fi
+
+dnl threaded resolver check
+if test "$want_thres" = "yes" && test "x$USE_THREADS_POSIX" != "x1"; then
+  if test "$want_pthreads" = "yes"; then
+    AC_MSG_ERROR([--enable-pthreads but pthreads was not found])
+  fi
+  dnl If native Windows fallback on Win32 threads since no POSIX threads
+  if test "$curl_cv_native_windows" = "yes"; then
+    USE_THREADS_WIN32=1
+    AC_DEFINE(USE_THREADS_WIN32, 1, [if you want Win32 threaded DNS lookup])
+    curl_res_msg="Win32 threaded"
+  else
+    AC_MSG_ERROR([Threaded resolver enabled but no thread library found])
+  fi
 fi
 
 dnl ************************************************************
@@ -3647,7 +3714,8 @@ fi
 if test "x$HAVE_LIBZ" = "x1"; then
   SUPPORT_FEATURES="$SUPPORT_FEATURES libz"
 fi
-if test "x$USE_ARES" = "x1" -o "x$USE_THREADS_POSIX" = "x1"; then
+if test "x$USE_ARES" = "x1" -o "x$USE_THREADS_POSIX" = "x1" \
+                            -o "x$USE_THREADS_WIN32" = "x1"; then
   SUPPORT_FEATURES="$SUPPORT_FEATURES AsynchDNS"
 fi
 if test "x$IDN_ENABLED" = "x1"; then
@@ -3694,6 +3762,11 @@ fi
 
 if test "x$USE_NGHTTP2" = "x1"; then
   SUPPORT_FEATURES="$SUPPORT_FEATURES HTTP2"
+fi
+
+if test "x$OPENSSL_ENABLED" = "x1" -o "x$GNUTLS_ENABLED" = "x1" \
+    -o "x$NSS_ENABLED" = "x1"; then
+  SUPPORT_FEATURES="$SUPPORT_FEATURES HTTPS-proxy"
 fi
 
 AC_SUBST(SUPPORT_FEATURES)
@@ -3808,6 +3881,7 @@ AC_CONFIG_FILES([Makefile \
            docs/examples/Makefile \
            docs/libcurl/Makefile \
            docs/libcurl/opts/Makefile \
+           docs/cmdline-opts/Makefile \
            include/Makefile \
            include/curl/Makefile \
            src/Makefile \
@@ -3821,6 +3895,7 @@ AC_CONFIG_FILES([Makefile \
            tests/server/Makefile \
            tests/libtest/Makefile \
            tests/unit/Makefile \
+           tests/fuzz/Makefile \
            packages/Makefile \
            packages/Win32/Makefile \
            packages/Win32/cygwin/Makefile \
