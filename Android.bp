@@ -188,37 +188,14 @@ cc_library {
         "lib/vtls/gskit.c",
         "lib/vtls/mbedtls.c",
     ],
-    shared: {
-        shared_libs: [
-            "libcrypto",
-            "libssl",
-        ],
-    },
-    static: {
-        static_libs: [
-            "libcrypto",
-            "libssl",
-            "libz",
-        ],
-    },
+    shared_libs: [
+        "libcrypto",
+        "libssl",
+        "libz",
+    ],
     target: {
         host: {
             cflags: ["-D_GNU_SOURCE=1"],
-            shared: {
-                shared_libs: [
-                    "libz-host",
-                ],
-            },
-        },
-        linux: {
-            host_ldlibs: ["-lrt"],
-        },
-        android: {
-            shared: {
-                shared_libs: [
-                    "libz",
-                ],
-            },
         },
     },
     unique_host_soname: true,
