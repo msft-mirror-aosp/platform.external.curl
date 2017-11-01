@@ -113,7 +113,7 @@
 #define HAVE_ARPA_INET_H 1
 
 /* Define to 1 if you have the <arpa/tftp.h> header file. */
-/* #undef HAVE_ARPA_TFTP_H */
+#define HAVE_ARPA_TFTP_H 1
 
 /* Define to 1 if you have the <assert.h> header file. */
 #define HAVE_ASSERT_H 1
@@ -128,8 +128,7 @@
 #define HAVE_BORINGSSL 1
 
 /* Define to 1 if you have the clock_gettime function and monotonic timer. */
-#ifndef __APPLE__
-/* CLOCK_MONOTONIC is not defined in mac when building for the host. */
+#if !defined(__APPLE__)
 #define HAVE_CLOCK_GETTIME_MONOTONIC 1
 #endif
 
@@ -141,9 +140,6 @@
 
 /* Define to 1 if you have the connect function. */
 #define HAVE_CONNECT 1
-
-/* Define to 1 if you have the `CRYPTO_cleanup_all_ex_data' function. */
-#define HAVE_CRYPTO_CLEANUP_ALL_EX_DATA 1
 
 /* Define to 1 if you have the <crypto.h> header file. */
 /* #undef HAVE_CRYPTO_H */
@@ -186,9 +182,6 @@
 
 /* Define to 1 if you have the fdopen function. */
 #define HAVE_FDOPEN 1
-
-/* Define to 1 if you have the `fork' function. */
-#define HAVE_FORK 1
 
 /* Define to 1 if you have the freeaddrinfo function. */
 #define HAVE_FREEADDRINFO 1
@@ -265,9 +258,6 @@
 /* Define to 1 if you have the `getppid' function. */
 #define HAVE_GETPPID 1
 
-/* Define to 1 if you have the `getprotobyname' function. */
-#define HAVE_GETPROTOBYNAME 1
-
 /* Define to 1 if you have the `getpwuid' function. */
 #define HAVE_GETPWUID 1
 
@@ -289,9 +279,15 @@
 /* Define to 1 if you have a working gmtime_r function. */
 #define HAVE_GMTIME_R 1
 
+/* Define to 1 if you have the `gnutls_alpn_set_protocols' function. */
+/* #undef HAVE_GNUTLS_ALPN_SET_PROTOCOLS */
+
 /* Define to 1 if you have the `gnutls_certificate_set_x509_key_file2'
    function. */
 /* #undef HAVE_GNUTLS_CERTIFICATE_SET_X509_KEY_FILE2 */
+
+/* Define to 1 if you have the `gnutls_ocsp_req_init' function. */
+/* #undef HAVE_GNUTLS_OCSP_REQ_INIT */
 
 /* if you have the function gnutls_srp_verifier */
 /* #undef HAVE_GNUTLS_SRP */
@@ -317,23 +313,14 @@
 /* if you have MIT Kerberos */
 /* #undef HAVE_GSSMIT */
 
-/* Define to 1 if you have the `idna_strerror' function. */
-/* #undef HAVE_IDNA_STRERROR */
-
-/* Define to 1 if you have the `idn_free' function. */
-/* #undef HAVE_IDN_FREE */
-
-/* Define to 1 if you have the <idn-free.h> header file. */
-/* #undef HAVE_IDN_FREE_H */
+/* Define to 1 if you have the <idn2.h> header file. */
+/* #undef HAVE_IDN2_H */
 
 /* Define to 1 if you have the <ifaddrs.h> header file. */
 #define HAVE_IFADDRS_H 1
 
 /* Define to 1 if you have the `if_nametoindex' function. */
 #define HAVE_IF_NAMETOINDEX 1
-
-/* Define to 1 if you have the `inet_addr' function. */
-#define HAVE_INET_ADDR 1
 
 /* Define to 1 if you have the inet_ntoa_r function. */
 /* #undef HAVE_INET_NTOA_R */
@@ -402,8 +389,8 @@
 /* Define to 1 if you have the <libgen.h> header file. */
 #define HAVE_LIBGEN_H 1
 
-/* Define to 1 if you have the `idn' library (-lidn). */
-/* #undef HAVE_LIBIDN */
+/* Define to 1 if you have the `idn2' library (-lidn2). */
+/* #undef HAVE_LIBIDN2 */
 
 /* Define to 1 if using libressl. */
 /* #undef HAVE_LIBRESSL */
@@ -445,12 +432,12 @@
 #define HAVE_MEMORY_H 1
 
 /* Define to 1 if you have the memrchr function or macro. */
-#ifndef __APPLE__
+#if !defined(__APPLE__)
 #define HAVE_MEMRCHR 1
 #endif
 
 /* Define to 1 if you have the MSG_NOSIGNAL flag. */
-#ifndef __APPLE__
+#if !defined(__APPLE__)
 #define HAVE_MSG_NOSIGNAL 1
 #endif
 
@@ -506,9 +493,6 @@
 /* Define to 1 if you have the <pem.h> header file. */
 /* #undef HAVE_PEM_H */
 
-/* Define to 1 if you have the `perror' function. */
-#define HAVE_PERROR 1
-
 /* Define to 1 if you have the `pipe' function. */
 #define HAVE_PIPE 1
 
@@ -525,19 +509,13 @@
 #define HAVE_POSIX_STRERROR_R 1
 
 /* if you have <pthread.h> */
-/* #undef HAVE_PTHREAD_H */
+#define HAVE_PTHREAD_H 1
 
 /* Define to 1 if you have the <pwd.h> header file. */
 #define HAVE_PWD_H 1
 
 /* Define to 1 if you have the `RAND_egd' function. */
 #define HAVE_RAND_EGD 1
-
-/* Define to 1 if you have the `RAND_screen' function. */
-/* #undef HAVE_RAND_SCREEN */
-
-/* Define to 1 if you have the `RAND_status' function. */
-#define HAVE_RAND_STATUS 1
 
 /* Define to 1 if you have the recv function. */
 #define HAVE_RECV 1
@@ -570,7 +548,7 @@
 /* #undef HAVE_SETSOCKOPT_SO_NONBLOCK */
 
 /* Define to 1 if you have the <sgtty.h> header file. */
-/* #undef HAVE_SGTTY_H */
+#define HAVE_SGTTY_H 1
 
 /* Define to 1 if you have the sigaction function. */
 #define HAVE_SIGACTION 1
@@ -714,7 +692,7 @@
 #define HAVE_SYS_UN_H 1
 
 /* Define to 1 if you have the <sys/utime.h> header file. */
-/* #undef HAVE_SYS_UTIME_H */
+#define HAVE_SYS_UTIME_H 1
 
 /* Define to 1 if you have the <sys/wait.h> header file. */
 #define HAVE_SYS_WAIT_H 1
@@ -731,20 +709,14 @@
 /* Define to 1 if you have the <time.h> header file. */
 #define HAVE_TIME_H 1
 
-/* Define to 1 if you have the <tld.h> header file. */
-/* #undef HAVE_TLD_H */
-
-/* Define to 1 if you have the `tld_strerror' function. */
-/* #undef HAVE_TLD_STRERROR */
-
-/* Define to 1 if you have the `uname' function. */
-#define HAVE_UNAME 1
-
 /* Define to 1 if you have the <unistd.h> header file. */
 #define HAVE_UNISTD_H 1
 
 /* Define to 1 if you have the `utime' function. */
 #define HAVE_UTIME 1
+
+/* Define to 1 if you have the `utimes' function. */
+#define HAVE_UTIMES 1
 
 /* Define to 1 if you have the <utime.h> header file. */
 #define HAVE_UTIME_H 1
@@ -797,8 +769,7 @@
 /* if you have the zlib.h header file */
 #define HAVE_ZLIB_H 1
 
-/* Define to the sub-directory in which libtool stores uninstalled libraries.
-   */
+/* Define to the sub-directory where libtool stores uninstalled libraries. */
 #define LT_OBJDIR ".libs/"
 
 /* Define to 1 if you need the lber.h header file even with ldap.h */
@@ -859,13 +830,13 @@
 #define RECV_TYPE_ARG4 int
 
 /* Define to the function return type for recv. */
-#define RECV_TYPE_RETV int
+#define RECV_TYPE_RETV ssize_t
 
 /* Define as the return type of signal handlers (`int' or `void'). */
 #define RETSIGTYPE void
 
 /* Define to the type qualifier of arg 5 for select. */
-#define SELECT_QUAL_ARG5
+#define SELECT_QUAL_ARG5 
 
 /* Define to the type of arg 1 for select. */
 #define SELECT_TYPE_ARG1 int
@@ -877,7 +848,7 @@
 #define SELECT_TYPE_ARG5 struct timeval *
 
 /* Define to the function return type for select. */
-#define SELECT_TYPE_RETV int
+#define SELECT_TYPE_RETV ssize_t
 
 /* Define to the type qualifier of arg 2 for send. */
 #define SEND_QUAL_ARG2 const
@@ -895,10 +866,31 @@
 #define SEND_TYPE_ARG4 int
 
 /* Define to the function return type for send. */
-#define SEND_TYPE_RETV int
+#define SEND_TYPE_RETV ssize_t
+
+/* The size of `int', as computed by sizeof. */
+#define SIZEOF_INT 4
+
+/* The size of `long', as computed by sizeof. */
+/* #undef SIZEOF_LONG */
 
 /* The size of `long long', as computed by sizeof. */
 /* #undef SIZEOF_LONG_LONG */
+
+/* The size of `off_t', as computed by sizeof. */
+#define SIZEOF_OFF_T 8
+
+/* The size of `short', as computed by sizeof. */
+#define SIZEOF_SHORT 2
+
+/* The size of `size_t', as computed by sizeof. */
+/* #undef SIZEOF_SIZE_T */
+
+/* The size of `time_t', as computed by sizeof. */
+/* #undef SIZEOF_TIME_T */
+
+/* The size of `void*', as computed by sizeof. */
+/* #undef SIZEOF_VOIDP */
 
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1
@@ -918,7 +910,7 @@
 /* if CyaSSL/WolfSSL is enabled */
 /* #undef USE_CYASSL */
 
-/* to enable iOS/Mac OS X native SSL/TLS support */
+/* to enable Apple OS native SSL/TLS support */
 /* #undef USE_DARWINSSL */
 
 /* if GnuTLS is enabled */
@@ -964,7 +956,10 @@
 /* #undef USE_SCHANNEL */
 
 /* if you want POSIX threaded DNS lookup */
-/* #undef USE_THREADS_POSIX */
+#define USE_THREADS_POSIX 1
+
+/* if you want Win32 threaded DNS lookup */
+/* #undef USE_THREADS_WIN32 */
 
 /* Use TLS-SRP authentication */
 /* #undef USE_TLS_SRP */
@@ -994,9 +989,6 @@
 
 /* Define to 1 to provide own prototypes. */
 /* #undef WANT_IDN_PROTOTYPES */
-
-/* Define to avoid automatic inclusion of winsock.h */
-/* #undef WIN32_LEAN_AND_MEAN */
 
 /* Define to 1 if OS is AIX. */
 #ifndef _ALL_SOURCE

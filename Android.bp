@@ -26,16 +26,43 @@ cc_defaults {
         // Bug: http://b/29823425 Disable -Wvarargs for Clang update to r271374
         "-Wno-varargs",
     ],
-    clang: true,
     local_include_dirs: ["include", "lib"],
+    multilib: {
+        lib32: {
+            cflags: [
+                "-DSIZEOF_LONG=4",
+                "-DSIZEOF_LONG_LONG=8",
+                "-DSIZEOF_SIZE_T=4",
+                "-DSIZEOF_TIME_T=4",
+                "-DSIZEOF_VOIDP=4",
+            ],
+        },
+        lib64: {
+            cflags: [
+                "-DSIZEOF_LONG=8",
+                "-DSIZEOF_LONG_LONG=8",
+                "-DSIZEOF_SIZE_T=8",
+                "-DSIZEOF_TIME_T=8",
+                "-DSIZEOF_VOIDP=8",
+            ],
+        },
+    },
 }
 
 cc_library {
     name: "libcurl",
+    vendor_available: true,
+    vndk: {
+        enabled: true,
+    },
     defaults: ["curl_common_defaults"],
     export_include_dirs: ["include"],
     host_supported: true,
+    cflags: [
+        "-DBUILDING_LIBCURL",
+    ],
     srcs:[
+        "lib/rand.c",
         "lib/file.c",
         "lib/timeval.c",
         "lib/base64.c",
@@ -59,7 +86,6 @@ cc_library {
         "lib/netrc.c",
         "lib/getinfo.c",
         "lib/transfer.c",
-        "lib/strequal.c",
         "lib/easy.c",
         "lib/security.c",
         "lib/curl_fnmatch.c",
@@ -93,10 +119,10 @@ cc_library {
         "lib/select.c",
         "lib/tftp.c",
         "lib/splay.c",
+        "lib/strcase.c",
         "lib/strdup.c",
         "lib/socks.c",
         "lib/ssh.c",
-        "lib/rawstr.c",
         "lib/curl_addrinfo.c",
         "lib/socks_gssapi.c",
         "lib/socks_sspi.c",
@@ -162,37 +188,14 @@ cc_library {
         "lib/vtls/gskit.c",
         "lib/vtls/mbedtls.c",
     ],
-    shared: {
-        shared_libs: [
-            "libcrypto",
-            "libssl",
-        ],
-    },
-    static: {
-        static_libs: [
-            "libcrypto",
-            "libssl",
-            "libz",
-        ],
-    },
+    shared_libs: [
+        "libcrypto",
+        "libssl",
+        "libz",
+    ],
     target: {
         host: {
             cflags: ["-D_GNU_SOURCE=1"],
-            shared: {
-                shared_libs: [
-                    "libz-host",
-                ],
-            },
-        },
-        linux: {
-            host_ldlibs: ["-lrt"],
-        },
-        android: {
-            shared: {
-                shared_libs: [
-                    "libz",
-                ],
-            },
         },
     },
     unique_host_soname: true,
@@ -239,7 +242,6 @@ cc_binary {
         "src/tool_urlglob.c",
         "src/tool_util.c",
         "src/tool_vms.c",
-        "src/tool_writeenv.c",
         "src/tool_writeout.c",
         "src/tool_xattr.c",
     ],
