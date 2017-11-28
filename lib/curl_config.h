@@ -17,7 +17,7 @@
 /* #undef CURL_DISABLE_CRYPTO_AUTH */
 
 /* to disable DICT */
-/* #undef CURL_DISABLE_DICT */
+#define CURL_DISABLE_DICT 1
 
 /* to disable FILE */
 /* #undef CURL_DISABLE_FILE */
@@ -26,13 +26,13 @@
 /* #undef CURL_DISABLE_FTP */
 
 /* to disable Gopher */
-/* #undef CURL_DISABLE_GOPHER */
+#define CURL_DISABLE_GOPHER 1
 
 /* to disable HTTP */
 /* #undef CURL_DISABLE_HTTP */
 
 /* to disable IMAP */
-/* #undef CURL_DISABLE_IMAP */
+#define CURL_DISABLE_IMAP 1
 
 /* to disable LDAP */
 #define CURL_DISABLE_LDAP 1
@@ -44,25 +44,25 @@
 /* #undef CURL_DISABLE_LIBCURL_OPTION */
 
 /* to disable POP3 */
-/* #undef CURL_DISABLE_POP3 */
+#define CURL_DISABLE_POP3 1
 
 /* to disable proxies */
 /* #undef CURL_DISABLE_PROXY */
 
 /* to disable RTSP */
-/* #undef CURL_DISABLE_RTSP */
+#define CURL_DISABLE_RTSP 1
 
 /* to disable SMB/CIFS */
-/* #undef CURL_DISABLE_SMB */
+#define CURL_DISABLE_SMB 1
 
 /* to disable SMTP */
-/* #undef CURL_DISABLE_SMTP */
+#define CURL_DISABLE_SMTP 1
 
 /* to disable TELNET */
-/* #undef CURL_DISABLE_TELNET */
+#define CURL_DISABLE_TELNET 1
 
 /* to disable TFTP */
-/* #undef CURL_DISABLE_TFTP */
+#define CURL_DISABLE_TFTP 1
 
 /* to disable TLS-SRP authentication */
 /* #undef CURL_DISABLE_TLS_SRP */
@@ -129,6 +129,7 @@
 
 /* Define to 1 if you have the clock_gettime function and monotonic timer. */
 #if !defined(__APPLE__)
+/* CLOCK_MONOTONIC is not defined in mac when building for the host. */
 #define HAVE_CLOCK_GETTIME_MONOTONIC 1
 #endif
 
@@ -378,7 +379,7 @@
 /* #undef HAVE_LDAP_INIT_FD */
 
 /* Use LDAPS implementation */
-#define HAVE_LDAP_SSL 1
+/* #undef HAVE_LDAP_SSL */
 
 /* Define to 1 if you have the ldap_ssl.h header file. */
 /* #undef HAVE_LDAP_SSL_H */
@@ -548,7 +549,7 @@
 /* #undef HAVE_SETSOCKOPT_SO_NONBLOCK */
 
 /* Define to 1 if you have the <sgtty.h> header file. */
-#define HAVE_SGTTY_H 1
+/* #undef HAVE_SGTTY_H */
 
 /* Define to 1 if you have the sigaction function. */
 #define HAVE_SIGACTION 1
@@ -692,7 +693,7 @@
 #define HAVE_SYS_UN_H 1
 
 /* Define to 1 if you have the <sys/utime.h> header file. */
-#define HAVE_SYS_UTIME_H 1
+/* #undef HAVE_SYS_UTIME_H */
 
 /* Define to 1 if you have the <sys/wait.h> header file. */
 #define HAVE_SYS_WAIT_H 1
@@ -871,26 +872,8 @@
 /* The size of `int', as computed by sizeof. */
 #define SIZEOF_INT 4
 
-/* The size of `long', as computed by sizeof. */
-/* #undef SIZEOF_LONG */
-
-/* The size of `long long', as computed by sizeof. */
-/* #undef SIZEOF_LONG_LONG */
-
-/* The size of `off_t', as computed by sizeof. */
-#define SIZEOF_OFF_T 8
-
 /* The size of `short', as computed by sizeof. */
 #define SIZEOF_SHORT 2
-
-/* The size of `size_t', as computed by sizeof. */
-/* #undef SIZEOF_SIZE_T */
-
-/* The size of `time_t', as computed by sizeof. */
-/* #undef SIZEOF_TIME_T */
-
-/* The size of `void*', as computed by sizeof. */
-/* #undef SIZEOF_VOIDP */
 
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1
