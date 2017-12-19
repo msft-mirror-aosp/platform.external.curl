@@ -23,7 +23,7 @@
 /* #undef CURL_DISABLE_FILE */
 
 /* to disable FTP */
-/* #undef CURL_DISABLE_FTP */
+#define CURL_DISABLE_FTP 1
 
 /* to disable Gopher */
 #define CURL_DISABLE_GOPHER 1
