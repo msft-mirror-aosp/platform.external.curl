@@ -1,5 +1,5 @@
-#ifndef HEADER_CURL_TOOL_MFILES_H
-#define HEADER_CURL_TOOL_MFILES_H
+#ifndef HEADER_CURL_SETOPT_H
+#define HEADER_CURL_SETOPT_H
 /***************************************************************************
  *                                  _   _ ____  _
  *  Project                     ___| | | |  _ \| |
@@ -7,7 +7,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2012, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2017, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -21,26 +21,7 @@
  * KIND, either express or implied.
  *
  ***************************************************************************/
-#include "tool_setup.h"
 
-/*
- * Structure for storing the information needed to build
- * a multiple files section.
- */
+CURLcode Curl_setstropt(char **charp, const char *s);
 
-struct multi_files {
-  struct curl_forms   form;
-  struct multi_files *next;
-};
-
-struct multi_files *AddMultiFiles(const char *file_name,
-                                  const char *type_name,
-                                  const char *show_filename,
-                                  struct multi_files **multi_first,
-                                  struct multi_files **multi_last);
-
-void FreeMultiInfo(struct multi_files **multi_first,
-                   struct multi_files **multi_last);
-
-#endif /* HEADER_CURL_TOOL_MFILES_H */
-
+#endif /* HEADER_CURL_SETOPT_H */
