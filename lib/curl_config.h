@@ -433,7 +433,9 @@
 #define HAVE_LIMITS_H 1
 
 /* Define to 1 if you have the <linux/tcp.h> header file. */
+#if !defined(__APPLE__)
 #define HAVE_LINUX_TCP_H 1
+#endif
 
 /* if your compiler supports LL */
 #define HAVE_LL 1
