@@ -198,6 +198,9 @@ cc_library {
         host: {
             cflags: ["-D_GNU_SOURCE=1"],
         },
+        darwin: {
+            enabled: false,
+        },
     },
     unique_host_soname: true,
 }
