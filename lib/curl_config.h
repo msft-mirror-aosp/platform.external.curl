@@ -417,20 +417,23 @@
 /* Define to 1 if you have the <librtmp/rtmp.h> header file. */
 /* #undef HAVE_LIBRTMP_RTMP_H */
 
+/* Define to 1 if you have the `ssh' library (-lssh). */
+/* #undef HAVE_LIBSSH */
+
 /* Define to 1 if you have the `ssh2' library (-lssh2). */
 /* #undef HAVE_LIBSSH2 */
 
 /* Define to 1 if you have the <libssh2.h> header file. */
 /* #undef HAVE_LIBSSH2_H */
 
+/* Define to 1 if you have the <libssh/libssh.h> header file. */
+/* #undef HAVE_LIBSSH_LIBSSH_H */
+
 /* Define to 1 if you have the `ssl' library (-lssl). */
 #define HAVE_LIBSSL 1
 
 /* if zlib is available */
 #define HAVE_LIBZ 1
-
-/* Define to 1 if you have the <limits.h> header file. */
-#define HAVE_LIMITS_H 1
 
 /* Define to 1 if you have the <linux/tcp.h> header file. */
 #if !defined(__APPLE__)
@@ -470,6 +473,9 @@
 
 /* Define to 1 if you have the <netdb.h> header file. */
 #define HAVE_NETDB_H 1
+
+/* Define to 1 if you have the <netinet/in6.h> header file. */
+/* #undef HAVE_NETINET_IN6_H */
 
 /* Define to 1 if you have the <netinet/in.h> header file. */
 #define HAVE_NETINET_IN_H 1
@@ -933,6 +939,9 @@
 
 /* if librtmp is in use */
 /* #undef USE_LIBRTMP */
+
+/* if libSSH is in use */
+/* #undef USE_LIBSSH */
 
 /* if libSSH2 is in use */
 /* #undef USE_LIBSSH2 */
