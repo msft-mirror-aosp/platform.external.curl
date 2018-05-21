@@ -55,6 +55,9 @@ CONFIGURE_ARGS=(
   --disable-smb
   --disable-gopher
 
+  # Disable FTP and FTPS support.
+  --disable-ftp
+
   # Disable LDAP and LDAPS support.
   --disable-ldap
   --disable-ldaps
@@ -74,7 +77,6 @@ CONFIGURE_ARGS=(
   ### Enable HTTP, FTP and FILE explicitly. These are enabled by default but
   # listed here as documentation.
   --enable-http
-  --enable-ftp
   --enable-file
   --enable-proxy
 

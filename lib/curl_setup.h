@@ -7,7 +7,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2017, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2018, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -141,14 +141,7 @@
 
 #include <curl/curl.h>
 
-/*
- * Ensure that no one is using the old SIZEOF_CURL_OFF_T macro
- */
-
-#ifdef SIZEOF_CURL_OFF_T
-#  error "SIZEOF_CURL_OFF_T shall not be defined!"
-   Error Compilation_aborted_SIZEOF_CURL_OFF_T_shall_not_be_defined
-#endif
+#define CURL_SIZEOF_CURL_OFF_T SIZEOF_CURL_OFF_T
 
 /*
  * Disable other protocols when http is the only one desired.
@@ -184,9 +177,6 @@
 #  endif
 #  ifndef CURL_DISABLE_SMTP
 #    define CURL_DISABLE_SMTP
-#  endif
-#  ifndef CURL_DISABLE_RTMP
-#    define CURL_DISABLE_RTMP
 #  endif
 #  ifndef CURL_DISABLE_GOPHER
 #    define CURL_DISABLE_GOPHER
@@ -425,6 +415,14 @@
 #    define SIZEOF_OFF_T 4
 #  endif
 #endif
+
+#if (SIZEOF_CURL_OFF_T == 4)
+#  define CURL_OFF_T_MAX CURL_OFF_T_C(0x7FFFFFFF)
+#else
+   /* assume CURL_SIZEOF_CURL_OFF_T == 8 */
+#  define CURL_OFF_T_MAX CURL_OFF_T_C(0x7FFFFFFFFFFFFFFF)
+#endif
+#define CURL_OFF_T_MIN (-CURL_OFF_T_MAX - CURL_OFF_T_C(1))
 
 /*
  * Arg 2 type for gethostname in case it hasn't been defined in config file.
@@ -727,6 +725,7 @@ Therefore we specify it explicitly. https://github.com/curl/curl/pull/258
 #if defined(WIN32) || defined(MSDOS)
 #define FOPEN_READTEXT "rt"
 #define FOPEN_WRITETEXT "wt"
+#define FOPEN_APPENDTEXT "at"
 #elif defined(__CYGWIN__)
 /* Cygwin has specific behavior we need to address when WIN32 is not defined.
 https://cygwin.com/cygwin-ug-net/using-textbinary.html
@@ -736,9 +735,11 @@ endings either CRLF or LF so 't' is appropriate.
 */
 #define FOPEN_READTEXT "rt"
 #define FOPEN_WRITETEXT "w"
+#define FOPEN_APPENDTEXT "a"
 #else
 #define FOPEN_READTEXT "r"
 #define FOPEN_WRITETEXT "w"
+#define FOPEN_APPENDTEXT "a"
 #endif
 
 /* WinSock destroys recv() buffer when send() failed.
@@ -758,9 +759,10 @@ endings either CRLF or LF so 't' is appropriate.
 
 /* Detect Windows App environment which has a restricted access
  * to the Win32 APIs. */
-# if defined(_WIN32_WINNT) && (_WIN32_WINNT >= 0x0602)
+# if (defined(_WIN32_WINNT) && (_WIN32_WINNT >= 0x0602)) || \
+  defined(WINAPI_FAMILY)
 #  include <winapifamily.h>
-#  if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP) && \
+#  if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP) &&  \
      !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 #    define CURL_WINDOWS_APP
 #  endif
