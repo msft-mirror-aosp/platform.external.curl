@@ -10,6 +10,9 @@
 /* Location of default ca path */
 #define CURL_CA_PATH "/system/etc/security/cacerts"
 
+/* Default SSL backend */
+/* #undef CURL_DEFAULT_SSL_BACKEND */
+
 /* to disable cookies support */
 /* #undef CURL_DISABLE_COOKIES */
 
@@ -23,7 +26,7 @@
 /* #undef CURL_DISABLE_FILE */
 
 /* to disable FTP */
-/* #undef CURL_DISABLE_FTP */
+#define CURL_DISABLE_FTP 1
 
 /* to disable Gopher */
 #define CURL_DISABLE_GOPHER 1
@@ -72,6 +75,9 @@
 
 /* Definition to make a library symbol externally visible. */
 #define CURL_EXTERN_SYMBOL __attribute__ ((__visibility__ ("default")))
+
+/* built with multiple SSL backends */
+/* #undef CURL_WITH_MULTI_SSL */
 
 /* your Entropy Gathering Daemon socket pathname */
 /* #undef EGD_SOCKET */
@@ -126,6 +132,15 @@
 
 /* Define to 1 if using BoringSSL. */
 #define HAVE_BORINGSSL 1
+
+/* if BROTLI is in use */
+/* #undef HAVE_BROTLI */
+
+/* Define to 1 if you have the <brotli/decode.h> header file. */
+/* #undef HAVE_BROTLI_DECODE_H */
+
+/* Define to 1 if you have the __builtin_available function. */
+/* #undef HAVE_BUILTIN_AVAILABLE */
 
 /* Define to 1 if you have the clock_gettime function and monotonic timer. */
 #if !defined(__APPLE__)
@@ -387,6 +402,9 @@
 /* Define to 1 if you have the `ldap_url_parse' function. */
 /* #undef HAVE_LDAP_URL_PARSE */
 
+/* Define to 1 if you have the `brotlidec' library (-lbrotlidec). */
+/* #undef HAVE_LIBBROTLIDEC */
+
 /* Define to 1 if you have the <libgen.h> header file. */
 #define HAVE_LIBGEN_H 1
 
@@ -399,11 +417,17 @@
 /* Define to 1 if you have the <librtmp/rtmp.h> header file. */
 /* #undef HAVE_LIBRTMP_RTMP_H */
 
+/* Define to 1 if you have the `ssh' library (-lssh). */
+/* #undef HAVE_LIBSSH */
+
 /* Define to 1 if you have the `ssh2' library (-lssh2). */
 /* #undef HAVE_LIBSSH2 */
 
 /* Define to 1 if you have the <libssh2.h> header file. */
 /* #undef HAVE_LIBSSH2_H */
+
+/* Define to 1 if you have the <libssh/libssh.h> header file. */
+/* #undef HAVE_LIBSSH_LIBSSH_H */
 
 /* Define to 1 if you have the `ssl' library (-lssl). */
 #define HAVE_LIBSSL 1
@@ -411,8 +435,10 @@
 /* if zlib is available */
 #define HAVE_LIBZ 1
 
-/* Define to 1 if you have the <limits.h> header file. */
-#define HAVE_LIMITS_H 1
+/* Define to 1 if you have the <linux/tcp.h> header file. */
+#if !defined(__APPLE__)
+#define HAVE_LINUX_TCP_H 1
+#endif
 
 /* if your compiler supports LL */
 #define HAVE_LL 1
@@ -425,6 +451,9 @@
 
 /* Define to 1 if the compiler supports the 'long long' data type. */
 #define HAVE_LONGLONG 1
+
+/* Define to 1 if you have the `mach_absolute_time' function. */
+/* #undef HAVE_MACH_ABSOLUTE_TIME */
 
 /* Define to 1 if you have the malloc.h header file. */
 #define HAVE_MALLOC_H 1
@@ -444,6 +473,9 @@
 
 /* Define to 1 if you have the <netdb.h> header file. */
 #define HAVE_NETDB_H 1
+
+/* Define to 1 if you have the <netinet/in6.h> header file. */
+/* #undef HAVE_NETINET_IN6_H */
 
 /* Define to 1 if you have the <netinet/in.h> header file. */
 #define HAVE_NETINET_IN_H 1
@@ -475,9 +507,6 @@
 
 /* Define to 1 if you have the <openssl/pem.h> header file. */
 #define HAVE_OPENSSL_PEM_H 1
-
-/* Define to 1 if you have the <openssl/pkcs12.h> header file. */
-#define HAVE_OPENSSL_PKCS12_H 1
 
 /* Define to 1 if you have the <openssl/rsa.h> header file. */
 #define HAVE_OPENSSL_RSA_H 1
@@ -869,6 +898,9 @@
 /* Define to the function return type for send. */
 #define SEND_TYPE_RETV ssize_t
 
+/* The size of `curl_off_t', as computed by sizeof. */
+#define SIZEOF_CURL_OFF_T 8
+
 /* The size of `int', as computed by sizeof. */
 #define SIZEOF_INT 4
 
@@ -907,6 +939,9 @@
 
 /* if librtmp is in use */
 /* #undef USE_LIBRTMP */
+
+/* if libSSH is in use */
+/* #undef USE_LIBSSH */
 
 /* if libSSH2 is in use */
 /* #undef USE_LIBSSH2 */
