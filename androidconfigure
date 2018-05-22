@@ -74,7 +74,7 @@ CONFIGURE_ARGS=(
   --disable-dict
 
 
-  ### Enable HTTP, FTP and FILE explicitly. These are enabled by default but
+  ### Enable HTTP and FILE explicitly. These are enabled by default but
   # listed here as documentation.
   --enable-http
   --enable-file
