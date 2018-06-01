@@ -143,10 +143,7 @@
 /* #undef HAVE_BUILTIN_AVAILABLE */
 
 /* Define to 1 if you have the clock_gettime function and monotonic timer. */
-#if !defined(__APPLE__)
-/* CLOCK_MONOTONIC is not defined in mac when building for the host. */
 #define HAVE_CLOCK_GETTIME_MONOTONIC 1
-#endif
 
 /* Define to 1 if you have the closesocket function. */
 /* #undef HAVE_CLOSESOCKET */
@@ -436,9 +433,7 @@
 #define HAVE_LIBZ 1
 
 /* Define to 1 if you have the <linux/tcp.h> header file. */
-#if !defined(__APPLE__)
 #define HAVE_LINUX_TCP_H 1
-#endif
 
 /* if your compiler supports LL */
 #define HAVE_LL 1
@@ -462,14 +457,10 @@
 #define HAVE_MEMORY_H 1
 
 /* Define to 1 if you have the memrchr function or macro. */
-#if !defined(__APPLE__)
 #define HAVE_MEMRCHR 1
-#endif
 
 /* Define to 1 if you have the MSG_NOSIGNAL flag. */
-#if !defined(__APPLE__)
 #define HAVE_MSG_NOSIGNAL 1
-#endif
 
 /* Define to 1 if you have the <netdb.h> header file. */
 #define HAVE_NETDB_H 1
@@ -525,6 +516,9 @@
 
 /* Define to 1 if you have the `pipe' function. */
 #define HAVE_PIPE 1
+
+/* if you have the PK11_CreateManagedGenericObject function */
+/* #undef HAVE_PK11_CREATEMANAGEDGENERICOBJECT */
 
 /* Define to 1 if you have a working poll function. */
 #define HAVE_POLL 1
@@ -738,6 +732,9 @@
 
 /* Define to 1 if you have the <time.h> header file. */
 #define HAVE_TIME_H 1
+
+/* Define this if time_t is unsigned */
+/* #undef HAVE_TIME_T_UNSIGNED */
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #define HAVE_UNISTD_H 1
