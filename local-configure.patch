@@ -46,28 +46,28 @@ index f9aef69e2..f5ba92735 100644
 -#define SEND_TYPE_RETV int
 +#define SEND_TYPE_RETV ssize_t
  
- /* The size of `curl_off_t', as computed by sizeof. */
+ /* The number of bytes in type curl_off_t */
  #define SIZEOF_CURL_OFF_T 8
 @@ -892,24 +896,9 @@
- /* The size of `int', as computed by sizeof. */
+ /* The number of bytes in type int */
  #define SIZEOF_INT 4
  
--/* The size of `long', as computed by sizeof. */
+-/* The number of bytes in type long */
 -#define SIZEOF_LONG 4
 -
--/* The size of `long long', as computed by sizeof. */
+-/* The number of bytes in type long long */
 -/* #undef SIZEOF_LONG_LONG */
 -
--/* The size of `off_t', as computed by sizeof. */
+-/* The number of bytes in type off_t */
 -#define SIZEOF_OFF_T 8
 -
- /* The size of `short', as computed by sizeof. */
+ /* The number of bytes in type short */
  #define SIZEOF_SHORT 2
  
--/* The size of `size_t', as computed by sizeof. */
+-/* The number of bytes in type size_t */
 -#define SIZEOF_SIZE_T 4
 -
--/* The size of `time_t', as computed by sizeof. */
+-/* The number of bytes in type time_t */
 -#define SIZEOF_TIME_T 4
 -
  /* Define to 1 if you have the ANSI C header files. */
