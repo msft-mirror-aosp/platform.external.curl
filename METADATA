@@ -1,5 +1,5 @@
 name: "curl"
-description: "Standalone Kotlin command-line compiler tools."
+description: "A command line tool and library for transferring data with URLs."
 third_party {
   url {
     type: HOMEPAGE
