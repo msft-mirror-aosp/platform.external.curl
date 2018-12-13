@@ -62,6 +62,7 @@ cc_library {
     srcs:[
         "lib/curl_ctype.c",
         "lib/curl_range.c",
+        "lib/doh.c",
         "lib/rand.c",
         "lib/file.c",
         "lib/timeval.c",
@@ -74,6 +75,7 @@ cc_library {
         "lib/sendf.c",
         "lib/ftp.c",
         "lib/url.c",
+        "lib/urlapi.c",
         "lib/dict.c",
         "lib/if2ip.c",
         "lib/speedcheck.c",
