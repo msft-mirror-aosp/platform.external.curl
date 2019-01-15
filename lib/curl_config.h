@@ -49,6 +49,9 @@
 /* to disable --libcurl C code generation option */
 /* #undef CURL_DISABLE_LIBCURL_OPTION */
 
+/* if the OpenSSL configuration won't be loaded automatically */
+/* #undef CURL_DISABLE_OPENSSL_AUTO_LOAD_CONFIG */
+
 /* to disable POP3 */
 #define CURL_DISABLE_POP3 1
 
@@ -95,7 +98,7 @@
 #define ENABLE_IPV6 1
 
 /* Define to the type of arg 2 for gethostname. */
-#define GETHOSTNAME_TYPE_ARG2 unsigned int
+#define GETHOSTNAME_TYPE_ARG2 size_t
 
 /* Specifies the number of arguments to getservbyport_r */
 /* #undef GETSERVBYPORT_R_ARGS */
@@ -134,7 +137,7 @@
 /* #undef HAVE_BROTLI_DECODE_H */
 
 /* Define to 1 if you have the __builtin_available function. */
-/* #undef HAVE_BUILTIN_AVAILABLE */
+#define HAVE_BUILTIN_AVAILABLE 1
 
 /* Define to 1 if you have the clock_gettime function and monotonic timer. */
 #define HAVE_CLOCK_GETTIME_MONOTONIC 1
@@ -172,9 +175,6 @@
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #define HAVE_DLFCN_H 1
-
-/* Define to 1 if you have the `ENGINE_cleanup' function. */
-/* #undef HAVE_ENGINE_CLEANUP */
 
 /* Define to 1 if you have the <errno.h> header file. */
 #define HAVE_ERRNO_H 1
@@ -531,7 +531,7 @@
 #define HAVE_PWD_H 1
 
 /* Define to 1 if you have the `RAND_egd' function. */
-#define HAVE_RAND_EGD 1
+/* #undef HAVE_RAND_EGD */
 
 /* Define to 1 if you have the recv function. */
 #define HAVE_RECV 1
@@ -579,7 +579,7 @@
 #define HAVE_SIGNAL_H 1
 
 /* Define to 1 if you have the sigsetjmp function or macro. */
-#define HAVE_SIGSETJMP 1
+/* #undef HAVE_SIGSETJMP */
 
 /* Define to 1 if sig_atomic_t is an available typedef. */
 #define HAVE_SIG_ATOMIC_T 1
@@ -908,9 +908,6 @@
 /* Define to enable c-ares support */
 /* #undef USE_ARES */
 
-/* if axTLS is enabled */
-/* #undef USE_AXTLS */
-
 /* if CyaSSL/WolfSSL is enabled */
 /* #undef USE_CYASSL */
 
@@ -940,6 +937,9 @@
 
 /* if mbedTLS is enabled */
 /* #undef USE_MBEDTLS */
+
+/* if MesaLink is enabled */
+/* #undef USE_MESALINK */
 
 /* Define to enable metalink support */
 /* #undef USE_METALINK */

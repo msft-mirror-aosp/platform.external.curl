@@ -1,5 +1,5 @@
 name: "curl"
-description: "Standalone Kotlin command-line compiler tools."
+description: "A command line tool and library for transferring data with URLs."
 third_party {
   url {
     type: HOMEPAGE
@@ -7,12 +7,12 @@ third_party {
   }
   url {
     type: ARCHIVE
-    value: "https://github.com/curl/curl/releases/download/curl-7_61_0/curl-7.61.0.tar.xz"
+    value: "https://github.com/curl/curl/releases/download/curl-7_63_0/curl-7.63.0.tar.xz"
   }
-  version: "curl-7_61_0"
+  version: "curl-7_63_0"
   last_upgrade_date {
-    year: 2018
-    month: 8
-    day: 3
+    year: 2019
+    month: 1
+    day: 8
   }
 }
