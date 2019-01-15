@@ -6,4 +6,5 @@
 rm $1/packages/Android/Android.mk
 cp -a -n $2/androidconfigure $1/
 cp -a -n $2/local-configure.patch $1/
-$1/androidconfigure
+
+echo "Please run androidconfigure to update curl_config.h."
