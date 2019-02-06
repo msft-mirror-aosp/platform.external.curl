@@ -500,6 +500,9 @@
 /* Define to 1 if you have the <openssl/ssl.h> header file. */
 #define HAVE_OPENSSL_SSL_H 1
 
+/* Define to 1 if you have the `OpenSSL_version' function. */
+#define HAVE_OPENSSL_VERSION 1
+
 /* Define to 1 if you have the <openssl/x509.h> header file. */
 #define HAVE_OPENSSL_X509_H 1
 
