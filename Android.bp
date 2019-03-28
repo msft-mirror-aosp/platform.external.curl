@@ -59,15 +59,6 @@ cc_library {
     cflags: [
         "-DBUILDING_LIBCURL",
     ],
-    exclude_srcs: [
-        "curl_path.c",
-        "nwlib.c",
-        "psl.c",
-        "ssh-libssh.c",
-        "vtls/mesalink.c",
-        "vtls/schannel_verify.c",
-        "vtls/sectransp.c",
-    ],
     srcs:[
         "lib/**/*.c",
     ],
