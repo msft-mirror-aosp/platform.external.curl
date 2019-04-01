@@ -2,7 +2,7 @@ Index: curl/lib/curl_config.h
 ===================================================================
 --- curl.orig/lib/curl_config.h
 +++ curl/lib/curl_config.h
-@@ -464,7 +464,7 @@
+@@ -461,7 +461,7 @@
  #define HAVE_NETDB_H 1
  
  /* Define to 1 if you have the <netinet/in6.h> header file. */
@@ -11,7 +11,7 @@ Index: curl/lib/curl_config.h
  
  /* Define to 1 if you have the <netinet/in.h> header file. */
  #define HAVE_NETINET_IN_H 1
-@@ -495,7 +495,7 @@
+@@ -492,7 +492,7 @@
  #define HAVE_OPENSSL_RSA_H 1
  
  /* if you have the function SRP_Calc_client_key */
@@ -20,7 +20,7 @@ Index: curl/lib/curl_config.h
  
  /* Define to 1 if you have the <openssl/ssl.h> header file. */
  #define HAVE_OPENSSL_SSL_H 1
-@@ -815,9 +815,6 @@
+@@ -809,9 +809,6 @@
  /* Define absolute filename for winbind's ntlm_auth helper. */
  /* #undef NTLM_WB_FILE */
  
@@ -30,7 +30,7 @@ Index: curl/lib/curl_config.h
  /* Name of package */
  #define PACKAGE "curl"
  
-@@ -873,7 +870,7 @@
+@@ -867,7 +864,7 @@
  #define SELECT_TYPE_ARG5 struct timeval *
  
  /* Define to the function return type for select. */
@@ -39,7 +39,7 @@ Index: curl/lib/curl_config.h
  
  /* Define to the type qualifier of arg 2 for send. */
  #define SEND_QUAL_ARG2 const
-@@ -899,24 +896,9 @@
+@@ -893,24 +890,9 @@
  /* The number of bytes in type int */
  #define SIZEOF_INT 4
  
