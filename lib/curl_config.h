@@ -436,6 +436,9 @@
 /* Define to 1 if you have the `ssl' library (-lssl). */
 #define HAVE_LIBSSL 1
 
+/* Define to 1 if you have the `wolfssh' library (-lwolfssh). */
+/* #undef HAVE_LIBWOLFSSH */
+
 /* if zlib is available */
 #define HAVE_LIBZ 1
 
@@ -788,6 +791,9 @@
 /* Define to 1 if you have the winsock.h header file. */
 /* #undef HAVE_WINSOCK_H */
 
+/* Define to 1 if you have the <wolfssh/ssh.h> header file. */
+/* #undef HAVE_WOLFSSH_SSH_H */
+
 /* Define to 1 if you have the `wolfSSLv3_client_method' function. */
 /* #undef HAVE_WOLFSSLV3_CLIENT_METHOD */
 
@@ -938,6 +944,9 @@
 /* Define to enable c-ares support */
 /* #undef USE_ARES */
 
+/* if BearSSL is enabled */
+/* #undef USE_BEARSSL */
+
 /* if ESNI support is available */
 /* #undef USE_ESNI */
 
@@ -1029,6 +1038,9 @@
 
 /* to enable SSPI support */
 /* #undef USE_WINDOWS_SSPI */
+
+/* if wolfSSH is in use */
+/* #undef USE_WOLFSSH */
 
 /* if wolfSSL is enabled */
 /* #undef USE_WOLFSSL */
