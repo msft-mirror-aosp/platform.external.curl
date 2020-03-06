@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -72,10 +72,11 @@
 #include "warnless.h"
 #include "multiif.h"
 #include "sigpipe.h"
-#include "ssh.h"
+#include "vssh/ssh.h"
 #include "setopt.h"
 #include "http_digest.h"
 #include "system_win32.h"
+#include "http2.h"
 
 /* The last 3 #include files should be in this order */
 #include "curl_printf.h"
@@ -157,20 +158,20 @@ static CURLcode global_init(long flags, bool memoryfuncs)
 
   if(!Curl_ssl_init()) {
     DEBUGF(fprintf(stderr, "Error: Curl_ssl_init failed\n"));
-    return CURLE_FAILED_INIT;
+    goto fail;
   }
 
 #ifdef WIN32
   if(Curl_win32_init(flags)) {
     DEBUGF(fprintf(stderr, "Error: win32_init failed\n"));
-    return CURLE_FAILED_INIT;
+    goto fail;
   }
 #endif
 
 #ifdef __AMIGA__
   if(!Curl_amiga_init()) {
     DEBUGF(fprintf(stderr, "Error: Curl_amiga_init failed\n"));
-    return CURLE_FAILED_INIT;
+    goto fail;
   }
 #endif
 
@@ -182,25 +183,31 @@ static CURLcode global_init(long flags, bool memoryfuncs)
 
   if(Curl_resolver_global_init()) {
     DEBUGF(fprintf(stderr, "Error: resolver_global_init failed\n"));
-    return CURLE_FAILED_INIT;
+    goto fail;
   }
-
-  (void)Curl_ipv6works();
 
 #if defined(USE_SSH)
   if(Curl_ssh_init()) {
-    return CURLE_FAILED_INIT;
+    goto fail;
   }
 #endif
 
-  if(flags & CURL_GLOBAL_ACK_EINTR)
-    Curl_ack_eintr = 1;
+#ifdef USE_WOLFSSH
+  if(WS_SUCCESS != wolfSSH_Init()) {
+    DEBUGF(fprintf(stderr, "Error: wolfSSH_Init failed\n"));
+    return CURLE_FAILED_INIT;
+  }
+#endif
 
   init_flags = flags;
 
   Curl_version_init();
 
   return CURLE_OK;
+
+  fail:
+  initialized--; /* undo the increase */
+  return CURLE_FAILED_INIT;
 }
 
 
@@ -267,6 +274,10 @@ void curl_global_cleanup(void)
   Curl_amiga_cleanup();
 
   Curl_ssh_cleanup();
+
+#ifdef USE_WOLFSSH
+  (void)wolfSSH_Cleanup();
+#endif
 
   init_flags  = 0;
 }
@@ -680,10 +691,6 @@ static CURLcode easy_perform(struct Curl_easy *data, bool events)
 
   sigpipe_ignore(data, &pipe_st);
 
-  /* assign this after curl_multi_add_handle() since that function checks for
-     it and rejects this handle otherwise */
-  data->multi = multi;
-
   /* run the transfer */
   result = events ? easy_events(multi) : easy_transfer(multi);
 
@@ -979,57 +986,63 @@ CURLcode curl_easy_pause(struct Curl_easy *data, int action)
   /* put it back in the keepon */
   k->keepon = newstate;
 
-  if(!(newstate & KEEP_RECV_PAUSE) && data->state.tempcount) {
-    /* there are buffers for sending that can be delivered as the receive
-       pausing is lifted! */
-    unsigned int i;
-    unsigned int count = data->state.tempcount;
-    struct tempbuf writebuf[3]; /* there can only be three */
-    struct connectdata *conn = data->conn;
-    struct Curl_easy *saved_data = NULL;
+  if(!(newstate & KEEP_RECV_PAUSE)) {
+    Curl_http2_stream_pause(data, FALSE);
 
-    /* copy the structs to allow for immediate re-pausing */
-    for(i = 0; i < data->state.tempcount; i++) {
-      writebuf[i] = data->state.tempwrite[i];
-      data->state.tempwrite[i].buf = NULL;
+    if(data->state.tempcount) {
+      /* there are buffers for sending that can be delivered as the receive
+         pausing is lifted! */
+      unsigned int i;
+      unsigned int count = data->state.tempcount;
+      struct tempbuf writebuf[3]; /* there can only be three */
+      struct connectdata *conn = data->conn;
+      struct Curl_easy *saved_data = NULL;
+
+      /* copy the structs to allow for immediate re-pausing */
+      for(i = 0; i < data->state.tempcount; i++) {
+        writebuf[i] = data->state.tempwrite[i];
+        data->state.tempwrite[i].buf = NULL;
+      }
+      data->state.tempcount = 0;
+
+      /* set the connection's current owner */
+      if(conn->data != data) {
+        saved_data = conn->data;
+        conn->data = data;
+      }
+
+      for(i = 0; i < count; i++) {
+        /* even if one function returns error, this loops through and frees
+           all buffers */
+        if(!result)
+          result = Curl_client_write(conn, writebuf[i].type, writebuf[i].buf,
+                                     writebuf[i].len);
+        free(writebuf[i].buf);
+      }
+
+      /* recover previous owner of the connection */
+      if(saved_data)
+        conn->data = saved_data;
+
+      if(result)
+        return result;
     }
-    data->state.tempcount = 0;
-
-    /* set the connection's current owner */
-    if(conn->data != data) {
-      saved_data = conn->data;
-      conn->data = data;
-    }
-
-    for(i = 0; i < count; i++) {
-      /* even if one function returns error, this loops through and frees all
-         buffers */
-      if(!result)
-        result = Curl_client_write(conn, writebuf[i].type, writebuf[i].buf,
-                                   writebuf[i].len);
-      free(writebuf[i].buf);
-    }
-
-    /* recover previous owner of the connection */
-    if(saved_data)
-      conn->data = saved_data;
-
-    if(result)
-      return result;
   }
 
   /* if there's no error and we're not pausing both directions, we want
      to have this handle checked soon */
   if((newstate & (KEEP_RECV_PAUSE|KEEP_SEND_PAUSE)) !=
      (KEEP_RECV_PAUSE|KEEP_SEND_PAUSE)) {
+    data->state.drain++;
     Curl_expire(data, 0, EXPIRE_RUN_NOW); /* get this handle going again */
     if(data->multi)
       Curl_update_timer(data->multi);
   }
 
-  /* This transfer may have been moved in or out of the bundle, update
-     the corresponding socket callback, if used */
-  Curl_updatesocket(data);
+  if(!data->state.done)
+    /* This transfer may have been moved in or out of the bundle, update the
+       corresponding socket callback, if used */
+    Curl_updatesocket(data);
 
   return result;
 }
