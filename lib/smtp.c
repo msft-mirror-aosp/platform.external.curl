@@ -28,7 +28,6 @@
  * RFC4954 SMTP Authentication
  * RFC5321 SMTP protocol
  * RFC6749 OAuth 2.0 Authorization Framework
- * RFC8314 Use of TLS for Email Submission and Access
  * Draft   SMTP URL Interface   <draft-earhart-url-smtp-00.txt>
  * Draft   LOGIN SASL Mechanism <draft-murchison-sasl-login-00.txt>
  *
@@ -95,7 +94,8 @@ static CURLcode smtp_done(struct connectdata *conn, CURLcode status,
 static CURLcode smtp_connect(struct connectdata *conn, bool *done);
 static CURLcode smtp_disconnect(struct connectdata *conn, bool dead);
 static CURLcode smtp_multi_statemach(struct connectdata *conn, bool *done);
-static int smtp_getsock(struct connectdata *conn, curl_socket_t *socks);
+static int smtp_getsock(struct connectdata *conn, curl_socket_t *socks,
+                        int numsocks);
 static CURLcode smtp_doing(struct connectdata *conn, bool *dophase_done);
 static CURLcode smtp_setup_connection(struct connectdata *conn);
 static CURLcode smtp_parse_url_options(struct connectdata *conn);
@@ -358,8 +358,10 @@ static CURLcode smtp_perform_helo(struct connectdata *conn)
  */
 static CURLcode smtp_perform_starttls(struct connectdata *conn)
 {
+  CURLcode result = CURLE_OK;
+
   /* Send the STARTTLS command */
-  CURLcode result = Curl_pp_sendf(&conn->proto.smtpc.pp, "%s", "STARTTLS");
+  result = Curl_pp_sendf(&conn->proto.smtpc.pp, "%s", "STARTTLS");
 
   if(!result)
     state(conn, SMTP_STARTTLS);
@@ -375,10 +377,11 @@ static CURLcode smtp_perform_starttls(struct connectdata *conn)
  */
 static CURLcode smtp_perform_upgrade_tls(struct connectdata *conn)
 {
-  /* Start the SSL connection */
+  CURLcode result = CURLE_OK;
   struct smtp_conn *smtpc = &conn->proto.smtpc;
-  CURLcode result = Curl_ssl_connect_nonblocking(conn, FIRSTSOCKET,
-                                                 &smtpc->ssldone);
+
+  /* Start the SSL connection */
+  result = Curl_ssl_connect_nonblocking(conn, FIRSTSOCKET, &smtpc->ssldone);
 
   if(!result) {
     if(smtpc->state != SMTP_UPGRADETLS)
@@ -641,8 +644,10 @@ static CURLcode smtp_perform_rcpt_to(struct connectdata *conn)
  */
 static CURLcode smtp_perform_quit(struct connectdata *conn)
 {
+  CURLcode result = CURLE_OK;
+
   /* Send the QUIT command */
-  CURLcode result = Curl_pp_sendf(&conn->proto.smtpc.pp, "%s", "QUIT");
+  result = Curl_pp_sendf(&conn->proto.smtpc.pp, "%s", "QUIT");
 
   if(!result)
     state(conn, SMTP_QUIT);
@@ -714,7 +719,7 @@ static CURLcode smtp_state_ehlo_resp(struct connectdata *conn, int smtpcode,
       result = CURLE_REMOTE_ACCESS_DENIED;
     }
   }
-  else if(len >= 4) {
+  else {
     line += 4;
     len -= 4;
 
@@ -784,10 +789,6 @@ static CURLcode smtp_state_ehlo_resp(struct connectdata *conn, int smtpcode,
       else
         result = smtp_perform_authentication(conn);
     }
-  }
-  else {
-    failf(data, "Unexpectedly short EHLO response");
-    result = CURLE_WEIRD_SERVER_REPLY;
   }
 
   return result;
@@ -1117,9 +1118,10 @@ static CURLcode smtp_init(struct connectdata *conn)
 }
 
 /* For the SMTP "protocol connect" and "doing" phases only */
-static int smtp_getsock(struct connectdata *conn, curl_socket_t *socks)
+static int smtp_getsock(struct connectdata *conn, curl_socket_t *socks,
+                        int numsocks)
 {
-  return Curl_pp_getsock(&conn->proto.smtpc.pp, socks);
+  return Curl_pp_getsock(&conn->proto.smtpc.pp, socks, numsocks);
 }
 
 /***********************************************************************
@@ -1216,7 +1218,7 @@ static CURLcode smtp_done(struct connectdata *conn, CURLcode status,
        returned CURLE_AGAIN, we duplicate the EOB now rather than when the
        bytes written doesn't equal len. */
     if(smtp->trailing_crlf || !conn->data->state.infilesize) {
-      eob = strdup(&SMTP_EOB[2]);
+      eob = strdup(SMTP_EOB + 2);
       len = SMTP_EOB_LEN - 2;
     }
     else {
@@ -1250,7 +1252,12 @@ static CURLcode smtp_done(struct connectdata *conn, CURLcode status,
 
     state(conn, SMTP_POSTDATA);
 
-    /* Run the state-machine */
+    /* Run the state-machine
+
+       TODO: when the multi interface is used, this _really_ should be using
+       the smtp_multi_statemach function but we have no general support for
+       non-blocking DONE operations!
+    */
     result = smtp_block_statemach(conn, FALSE);
   }
 

@@ -30,7 +30,6 @@
  * RFC4752 The Kerberos V5 ("GSSAPI") SASL Mechanism
  * RFC5034 POP3 SASL Authentication Mechanism
  * RFC6749 OAuth 2.0 Authorization Framework
- * RFC8314 Use of TLS for Email Submission and Access
  * Draft   LOGIN SASL Mechanism <draft-murchison-sasl-login-00.txt>
  *
  ***************************************************************************/
@@ -95,7 +94,8 @@ static CURLcode pop3_done(struct connectdata *conn, CURLcode status,
 static CURLcode pop3_connect(struct connectdata *conn, bool *done);
 static CURLcode pop3_disconnect(struct connectdata *conn, bool dead);
 static CURLcode pop3_multi_statemach(struct connectdata *conn, bool *done);
-static int pop3_getsock(struct connectdata *conn, curl_socket_t *socks);
+static int pop3_getsock(struct connectdata *conn, curl_socket_t *socks,
+                        int numsocks);
 static CURLcode pop3_doing(struct connectdata *conn, bool *dophase_done);
 static CURLcode pop3_setup_connection(struct connectdata *conn);
 static CURLcode pop3_parse_url_options(struct connectdata *conn);
@@ -338,8 +338,10 @@ static CURLcode pop3_perform_capa(struct connectdata *conn)
  */
 static CURLcode pop3_perform_starttls(struct connectdata *conn)
 {
+  CURLcode result = CURLE_OK;
+
   /* Send the STLS command */
-  CURLcode result = Curl_pp_sendf(&conn->proto.pop3c.pp, "%s", "STLS");
+  result = Curl_pp_sendf(&conn->proto.pop3c.pp, "%s", "STLS");
 
   if(!result)
     state(conn, POP3_STARTTLS);
@@ -355,10 +357,11 @@ static CURLcode pop3_perform_starttls(struct connectdata *conn)
  */
 static CURLcode pop3_perform_upgrade_tls(struct connectdata *conn)
 {
-  /* Start the SSL connection */
+  CURLcode result = CURLE_OK;
   struct pop3_conn *pop3c = &conn->proto.pop3c;
-  CURLcode result = Curl_ssl_connect_nonblocking(conn, FIRSTSOCKET,
-                                                 &pop3c->ssldone);
+
+  /* Start the SSL connection */
+  result = Curl_ssl_connect_nonblocking(conn, FIRSTSOCKET, &pop3c->ssldone);
 
   if(!result) {
     if(pop3c->state != POP3_UPGRADETLS)
@@ -589,8 +592,10 @@ static CURLcode pop3_perform_command(struct connectdata *conn)
  */
 static CURLcode pop3_perform_quit(struct connectdata *conn)
 {
+  CURLcode result = CURLE_OK;
+
   /* Send the QUIT command */
-  CURLcode result = Curl_pp_sendf(&conn->proto.pop3c.pp, "%s", "QUIT");
+  result = Curl_pp_sendf(&conn->proto.pop3c.pp, "%s", "QUIT");
 
   if(!result)
     state(conn, POP3_QUIT);
@@ -1054,9 +1059,10 @@ static CURLcode pop3_init(struct connectdata *conn)
 }
 
 /* For the POP3 "protocol connect" and "doing" phases only */
-static int pop3_getsock(struct connectdata *conn, curl_socket_t *socks)
+static int pop3_getsock(struct connectdata *conn, curl_socket_t *socks,
+                        int numsocks)
 {
-  return Curl_pp_getsock(&conn->proto.pop3c.pp, socks);
+  return Curl_pp_getsock(&conn->proto.pop3c.pp, socks, numsocks);
 }
 
 /***********************************************************************

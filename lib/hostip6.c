@@ -102,15 +102,14 @@ static void dump_addrinfo(struct connectdata *conn, const Curl_addrinfo *ai)
   printf("dump_addrinfo:\n");
   for(; ai; ai = ai->ai_next) {
     char buf[INET6_ADDRSTRLEN];
+    char buffer[STRERROR_LEN];
     printf("    fam %2d, CNAME %s, ",
            ai->ai_family, ai->ai_canonname ? ai->ai_canonname : "<none>");
     if(Curl_printable_address(ai, buf, sizeof(buf)))
       printf("%s\n", buf);
-    else {
-      char buffer[STRERROR_LEN];
+    else
       printf("failed; %s\n",
              Curl_strerror(SOCKERRNO, buffer, sizeof(buffer)));
-    }
   }
 }
 #else
@@ -165,8 +164,7 @@ Curl_addrinfo *Curl_getaddrinfo(struct connectdata *conn,
 
   memset(&hints, 0, sizeof(hints));
   hints.ai_family = pf;
-  hints.ai_socktype = (conn->transport == TRNSPRT_TCP) ?
-    SOCK_STREAM : SOCK_DGRAM;
+  hints.ai_socktype = conn->socktype;
 
 #ifndef USE_RESOLVE_ON_IPS
   /*

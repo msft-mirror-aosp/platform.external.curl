@@ -27,11 +27,12 @@
 
 int test(char *URL)
 {
+  CURLM *cm = NULL;
   CURLSH *sh = NULL;
   CURL *ch = NULL;
   int unfinished;
 
-  CURLM *cm = curl_multi_init();
+  cm = curl_multi_init();
   if(!cm)
     return 1;
   sh = curl_share_init();
@@ -87,7 +88,6 @@ int test(char *URL)
   curl_easy_cleanup(ch);
   curl_share_cleanup(sh);
   curl_multi_cleanup(cm);
-  curl_global_cleanup();
 
   return 0;
 }

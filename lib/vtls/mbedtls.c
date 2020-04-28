@@ -54,7 +54,6 @@
 #include "parsedate.h"
 #include "connect.h" /* for the connect timeout */
 #include "select.h"
-#include "multiif.h"
 #include "polarssl_threadlock.h"
 
 /* The last 3 #include files should be in this order */
@@ -343,8 +342,7 @@ mbed_connect_step1(struct connectdata *conn,
   if(SSL_SET_OPTION(key)) {
     ret = mbedtls_pk_parse_keyfile(&BACKEND->pk, SSL_SET_OPTION(key),
                                    SSL_SET_OPTION(key_passwd));
-    if(ret == 0 && !(mbedtls_pk_can_do(&BACKEND->pk, MBEDTLS_PK_RSA) ||
-                     mbedtls_pk_can_do(&BACKEND->pk, MBEDTLS_PK_ECKEY)))
+    if(ret == 0 && !mbedtls_pk_can_do(&BACKEND->pk, MBEDTLS_PK_RSA))
       ret = MBEDTLS_ERR_PK_TYPE_MISMATCH;
 
     if(ret) {
@@ -541,6 +539,13 @@ mbed_connect_step2(struct connectdata *conn,
         data->set.str[STRING_SSL_PINNEDPUBLICKEY_PROXY] :
         data->set.str[STRING_SSL_PINNEDPUBLICKEY_ORIG];
 
+#ifdef HAS_ALPN
+  const char *next_protocol;
+#endif
+
+  char errorbuf[128];
+  errorbuf[0] = 0;
+
   conn->recv[sockindex] = mbed_recv;
   conn->send[sockindex] = mbed_send;
 
@@ -555,8 +560,6 @@ mbed_connect_step2(struct connectdata *conn,
     return CURLE_OK;
   }
   else if(ret) {
-    char errorbuf[128];
-    errorbuf[0] = 0;
 #ifdef MBEDTLS_ERROR_C
     mbedtls_strerror(ret, errorbuf, sizeof(errorbuf));
 #endif /* MBEDTLS_ERROR_C */
@@ -587,9 +590,6 @@ mbed_connect_step2(struct connectdata *conn,
 
     else if(ret & MBEDTLS_X509_BADCERT_NOT_TRUSTED)
       failf(data, "Cert verify failed: BADCERT_NOT_TRUSTED");
-
-    else if(ret & MBEDTLS_X509_BADCERT_FUTURE)
-      failf(data, "Cert verify failed: BADCERT_FUTURE");
 
     return CURLE_PEER_FAILED_VERIFICATION;
   }
@@ -664,7 +664,7 @@ mbed_connect_step2(struct connectdata *conn,
 
 #ifdef HAS_ALPN
   if(conn->bits.tls_enable_alpn) {
-    const char *next_protocol = mbedtls_ssl_get_alpn_protocol(&BACKEND->ssl);
+    next_protocol = mbedtls_ssl_get_alpn_protocol(&BACKEND->ssl);
 
     if(next_protocol) {
       infof(data, "ALPN, server accepted to use %s\n", next_protocol);
@@ -684,8 +684,6 @@ mbed_connect_step2(struct connectdata *conn,
     else {
       infof(data, "ALPN, server did not agree to a protocol\n");
     }
-    Curl_multiuse_state(conn, conn->negnpn == CURL_HTTP_VERSION_2 ?
-                        BUNDLE_MULTIPLEX : BUNDLE_NO_MULTIUSE);
   }
 #endif
 
@@ -887,7 +885,7 @@ mbed_connect_common(struct connectdata *conn,
   struct Curl_easy *data = conn->data;
   struct ssl_connect_data *connssl = &conn->ssl[sockindex];
   curl_socket_t sockfd = conn->sock[sockindex];
-  timediff_t timeout_ms;
+  long timeout_ms;
   int what;
 
   /* check if the connection has already been established */
@@ -933,7 +931,7 @@ mbed_connect_common(struct connectdata *conn,
         connssl->connecting_state?sockfd:CURL_SOCKET_BAD;
 
       what = Curl_socket_check(readfd, CURL_SOCKET_BAD, writefd,
-                               nonblocking ? 0 : (time_t)timeout_ms);
+                               nonblocking ? 0 : timeout_ms);
       if(what < 0) {
         /* fatal error */
         failf(data, "select/poll on SSL socket, errno: %d", SOCKERRNO);

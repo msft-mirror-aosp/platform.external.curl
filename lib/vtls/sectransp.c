@@ -31,7 +31,6 @@
 #include "urldata.h" /* for the Curl_easy definition */
 #include "curl_base64.h"
 #include "strtok.h"
-#include "multiif.h"
 
 #ifdef USE_SECTRANSP
 
@@ -79,7 +78,7 @@
 /* These macros mean "the following code is present to allow runtime backward
    compatibility with at least this cat or earlier":
    (You set this at build-time using the compiler command line option
-   "-mmacosx-version-min.") */
+   "-mmacos-version-min.") */
 #define CURL_SUPPORT_MAC_10_5 MAC_OS_X_VERSION_MIN_REQUIRED <= 1050
 #define CURL_SUPPORT_MAC_10_6 MAC_OS_X_VERSION_MIN_REQUIRED <= 1060
 #define CURL_SUPPORT_MAC_10_7 MAC_OS_X_VERSION_MIN_REQUIRED <= 1070
@@ -1903,6 +1902,7 @@ static CURLcode sectransp_connect_step1(struct connectdata *conn,
   /* We want to enable 1/n-1 when using a CBC cipher unless the user
      specifically doesn't want us doing that: */
   if(SSLSetSessionOption != NULL) {
+    /* TODO s/data->set.ssl.enable_beast/SSL_SET_OPTION(enable_beast)/g */
     SSLSetSessionOption(BACKEND->ssl_ctx, kSSLSessionOptionSendOneByteRecord,
                       !data->set.ssl.enable_beast);
     SSLSetSessionOption(BACKEND->ssl_ctx, kSSLSessionOptionFalseStart,
@@ -2111,8 +2111,8 @@ static int append_cert_to_array(struct Curl_easy *data,
     return CURLE_OK;
 }
 
-static CURLcode verify_cert(const char *cafile, struct Curl_easy *data,
-                            SSLContextRef ctx)
+static int verify_cert(const char *cafile, struct Curl_easy *data,
+                       SSLContextRef ctx)
 {
   int n = 0, rc;
   long res;
@@ -2370,10 +2370,10 @@ sectransp_connect_step2(struct connectdata *conn, int sockindex)
         Leopard's headers */
       case -9841:
         if(SSL_CONN_CONFIG(CAfile) && SSL_CONN_CONFIG(verifypeer)) {
-          CURLcode result = verify_cert(SSL_CONN_CONFIG(CAfile), data,
-                                        BACKEND->ssl_ctx);
-          if(result)
-            return result;
+          int res = verify_cert(SSL_CONN_CONFIG(CAfile), data,
+                                BACKEND->ssl_ctx);
+          if(res != CURLE_OK)
+            return res;
         }
         /* the documentation says we need to call SSLHandshake() again */
         return sectransp_connect_step2(conn, sockindex);
@@ -2651,9 +2651,6 @@ sectransp_connect_step2(struct connectdata *conn, int sockindex)
         else
           infof(data, "ALPN, server did not agree to a protocol\n");
 
-        Curl_multiuse_state(conn, conn->negnpn == CURL_HTTP_VERSION_2 ?
-                            BUNDLE_MULTIPLEX : BUNDLE_NO_MULTIUSE);
-
         /* chosenProtocol is a reference to the string within alpnArr
            and doesn't need to be freed separately */
         if(alpnArr)
@@ -2805,7 +2802,7 @@ sectransp_connect_common(struct connectdata *conn,
   struct Curl_easy *data = conn->data;
   struct ssl_connect_data *connssl = &conn->ssl[sockindex];
   curl_socket_t sockfd = conn->sock[sockindex];
-  timediff_t timeout_ms;
+  long timeout_ms;
   int what;
 
   /* check if the connection has already been established */
@@ -2852,7 +2849,7 @@ sectransp_connect_common(struct connectdata *conn,
       connssl->connecting_state?sockfd:CURL_SOCKET_BAD;
 
       what = Curl_socket_check(readfd, CURL_SOCKET_BAD, writefd,
-                               nonblocking?0:(time_t)timeout_ms);
+                               nonblocking?0:timeout_ms);
       if(what < 0) {
         /* fatal error */
         failf(data, "select/poll on SSL socket, errno: %d", SOCKERRNO);
@@ -2963,10 +2960,8 @@ static int Curl_sectransp_shutdown(struct connectdata *conn, int sockindex)
   if(!BACKEND->ssl_ctx)
     return 0;
 
-#ifndef CURL_DISABLE_FTP
   if(data->set.ftp_ccc != CURLFTPSSL_CCC_ACTIVE)
     return 0;
-#endif
 
   Curl_sectransp_close(conn, sockindex);
 
@@ -3186,10 +3181,7 @@ static ssize_t sectransp_recv(struct connectdata *conn,
   /*struct Curl_easy *data = conn->data;*/
   struct ssl_connect_data *connssl = &conn->ssl[num];
   size_t processed = 0UL;
-  OSStatus err;
-
-  again:
-  err = SSLRead(BACKEND->ssl_ctx, buf, buffersize, &processed);
+  OSStatus err = SSLRead(BACKEND->ssl_ctx, buf, buffersize, &processed);
 
   if(err != noErr) {
     switch(err) {
@@ -3210,16 +3202,6 @@ static ssize_t sectransp_recv(struct connectdata *conn,
         return -1L;
         break;
 
-        /* The below is errSSLPeerAuthCompleted; it's not defined in
-           Leopard's headers */
-      case -9841:
-        if(SSL_CONN_CONFIG(CAfile) && SSL_CONN_CONFIG(verifypeer)) {
-          CURLcode result = verify_cert(SSL_CONN_CONFIG(CAfile), conn->data,
-                                        BACKEND->ssl_ctx);
-          if(result)
-            return result;
-        }
-        goto again;
       default:
         failf(conn->data, "SSLRead() return error %d", err);
         *curlcode = CURLE_RECV_ERROR;

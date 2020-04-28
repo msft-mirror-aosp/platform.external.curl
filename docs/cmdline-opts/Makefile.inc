@@ -65,7 +65,6 @@ DPAGES =					\
   http1.0.d					\
   http1.1.d http2.d				\
   http2-prior-knowledge.d			\
-  http3.d                                       \
   ignore-content-length.d			\
   include.d					\
   insecure.d					\
@@ -97,15 +96,11 @@ DPAGES =					\
   no-buffer.d					\
   no-keepalive.d				\
   no-npn.d					\
-  no-progress-meter.d                           \
   no-sessionid.d				\
   noproxy.d					\
   ntlm.d ntlm-wb.d				\
   oauth2-bearer.d				\
-  output.d                                      \
-  parallel.d                                    \
-  pass.d                			\
-  parallel-max.d                                \
+  output.d pass.d				\
   path-as-is.d					\
   pinnedpubkey.d				\
   post301.d					\
@@ -159,7 +154,6 @@ DPAGES =					\
   retry-delay.d					\
   retry-max-time.d				\
   retry.d					\
-  sasl-authzid.d					\
   sasl-ir.d					\
   service-name.d				\
   show-error.d					\

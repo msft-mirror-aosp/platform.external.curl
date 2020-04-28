@@ -9,7 +9,7 @@ HTTP Digest auth
 
 # Server-side
 <reply>
-# First reply back and ask for Digest auth
+# reply back and ask for Digest auth
 <data1>
 HTTP/1.1 401 Authorization Required swsclose
 Server: Apache/1.3.27 (Darwin) PHP/4.1.2
@@ -19,17 +19,6 @@ Content-Length: 26
 
 This is not the real page
 </data1>
-
-# second reply back
-<data2>
-HTTP/1.1 401 Authorization Required swsclose
-Server: Apache/1.3.27 (Darwin) PHP/4.1.2
-WWW-Authenticate: Digest realm="testrealm", nonce="1053604145"
-Content-Type: text/html; charset=iso-8859-1
-Content-Length: 26
-
-This is not the real page
-</data2>
 
 # This is supposed to be returned when the server gets a
 # Authorization: Digest line passed-in from the client
@@ -51,7 +40,7 @@ HTTP/1.1 401 Authorization re-negotiation please swsbounce
 Server: Apache/1.3.27 (Darwin) PHP/4.1.2
 WWW-Authenticate: Digest realm="testrealm", algorithm=MD5, nonce="999999", stale=true, qop="auth"
 Content-Type: text/html; charset=iso-8859-1
-Content-Length: 26
+Content-Length: 25
 
 This is not the real page
 </data1002>
@@ -104,11 +93,6 @@ Accept: */*
 
 GET /1530002 HTTP/1.1
 Host: %HOSTIP:%HTTPPORT
-User-Agent: curl/7.11.0-CVS (i686-pc-linux-gnu) libcurl/7.11.0-CVS OpenSSL/0.9.6b ipv6 zlib/1.1.4 GSS
-Accept: */*
-
-GET /1530002 HTTP/1.1
-Host: %HOSTIP:%HTTPPORT
 Authorization: Digest username="testuser", realm="testrealm", nonce="1053604145", uri="/1530002", response="f84511b014fdd0ba6494f42871079c32"
 User-Agent: curl/7.11.0-CVS (i686-pc-linux-gnu) libcurl/7.11.0-CVS OpenSSL/0.9.6b ipv6 zlib/1.1.4 GSS
 Accept: */*
@@ -133,17 +117,11 @@ Content-Type: text/html; charset=iso-8859-1
 Content-Length: 23
 
 This IS the real page!
-HTTP/1.1 401 Authorization Required swsclose
-Server: Apache/1.3.27 (Darwin) PHP/4.1.2
-WWW-Authenticate: Digest realm="testrealm", nonce="1053604145"
-Content-Type: text/html; charset=iso-8859-1
-Content-Length: 26
-
 HTTP/1.1 401 Authorization re-negotiation please swsbounce
 Server: Apache/1.3.27 (Darwin) PHP/4.1.2
 WWW-Authenticate: Digest realm="testrealm", algorithm=MD5, nonce="999999", stale=true, qop="auth"
 Content-Type: text/html; charset=iso-8859-1
-Content-Length: 26
+Content-Length: 25
 
 HTTP/1.1 200 OK
 Server: Apache/1.3.27 (Darwin) PHP/4.1.2

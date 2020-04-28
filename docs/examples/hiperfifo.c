@@ -72,6 +72,12 @@ callback.
 #include <errno.h>
 #include <sys/cdefs.h>
 
+#ifdef __GNUC__
+#define _Unused __attribute__((unused))
+#else
+#define _Unused
+#endif
+
 #define MSG_OUT stdout /* Send info to stdout, change to stderr if you want */
 
 
@@ -109,7 +115,7 @@ typedef struct _SockInfo
   GlobalInfo *global;
 } SockInfo;
 
-#define mycase(code) \
+#define __case(code) \
   case code: s = __STRING(code)
 
 /* Die if we get a bad CURLMcode somewhere */
@@ -118,14 +124,14 @@ static void mcode_or_die(const char *where, CURLMcode code)
   if(CURLM_OK != code) {
     const char *s;
     switch(code) {
-      mycase(CURLM_BAD_HANDLE); break;
-      mycase(CURLM_BAD_EASY_HANDLE); break;
-      mycase(CURLM_OUT_OF_MEMORY); break;
-      mycase(CURLM_INTERNAL_ERROR); break;
-      mycase(CURLM_UNKNOWN_OPTION); break;
-      mycase(CURLM_LAST); break;
+      __case(CURLM_BAD_HANDLE); break;
+      __case(CURLM_BAD_EASY_HANDLE); break;
+      __case(CURLM_OUT_OF_MEMORY); break;
+      __case(CURLM_INTERNAL_ERROR); break;
+      __case(CURLM_UNKNOWN_OPTION); break;
+      __case(CURLM_LAST); break;
       default: s = "CURLM_unknown"; break;
-      mycase(CURLM_BAD_SOCKET);
+      __case(CURLM_BAD_SOCKET);
       fprintf(MSG_OUT, "ERROR: %s returns %s\n", where, s);
       /* ignore this error */
       return;
@@ -137,10 +143,10 @@ static void mcode_or_die(const char *where, CURLMcode code)
 
 
 /* Update the event timer after curl_multi library calls */
-static int multi_timer_cb(CURLM *multi, long timeout_ms, GlobalInfo *g)
+static int multi_timer_cb(CURLM *multi _Unused, long timeout_ms, GlobalInfo *g)
 {
   struct timeval timeout;
-  (void)multi;
+  CURLMcode rc;
 
   timeout.tv_sec = timeout_ms/1000;
   timeout.tv_usec = (timeout_ms%1000)*1000;
@@ -197,8 +203,8 @@ static void event_cb(int fd, short kind, void *userp)
   CURLMcode rc;
 
   int action =
-    ((kind & EV_READ) ? CURL_CSELECT_IN : 0) |
-    ((kind & EV_WRITE) ? CURL_CSELECT_OUT : 0);
+    (kind & EV_READ ? CURL_CSELECT_IN : 0) |
+    (kind & EV_WRITE ? CURL_CSELECT_OUT : 0);
 
   rc = curl_multi_socket_action(g->multi, fd, action, &g->still_running);
   mcode_or_die("event_cb: curl_multi_socket_action", rc);
@@ -215,12 +221,10 @@ static void event_cb(int fd, short kind, void *userp)
 
 
 /* Called by libevent when our timeout expires */
-static void timer_cb(int fd, short kind, void *userp)
+static void timer_cb(int fd _Unused, short kind _Unused, void *userp)
 {
   GlobalInfo *g = (GlobalInfo *)userp;
   CURLMcode rc;
-  (void)fd;
-  (void)kind;
 
   rc = curl_multi_socket_action(g->multi,
                                   CURL_SOCKET_TIMEOUT, 0, &g->still_running);
@@ -246,8 +250,7 @@ static void setsock(SockInfo *f, curl_socket_t s, CURL *e, int act,
                     GlobalInfo *g)
 {
   int kind =
-     ((act & CURL_POLL_IN) ? EV_READ : 0) |
-     ((act & CURL_POLL_OUT) ? EV_WRITE : 0) | EV_PERSIST;
+     (act&CURL_POLL_IN?EV_READ:0)|(act&CURL_POLL_OUT?EV_WRITE:0)|EV_PERSIST;
 
   f->sockfd = s;
   f->action = act;
@@ -300,21 +303,21 @@ static int sock_cb(CURL *e, curl_socket_t s, int what, void *cbp, void *sockp)
 
 
 /* CURLOPT_WRITEFUNCTION */
-static size_t write_cb(void *ptr, size_t size, size_t nmemb, void *data)
+static size_t write_cb(void *ptr _Unused, size_t size, size_t nmemb,
+                       void *data)
 {
-  (void)ptr;
-  (void)data;
-  return size * nmemb;
+  size_t realsize = size * nmemb;
+  ConnInfo *conn _Unused = (ConnInfo*) data;
+
+  return realsize;
 }
 
 
 /* CURLOPT_PROGRESSFUNCTION */
-static int prog_cb(void *p, double dltotal, double dlnow, double ult,
-                   double uln)
+static int prog_cb(void *p, double dltotal, double dlnow, double ult _Unused,
+                   double uln _Unused)
 {
   ConnInfo *conn = (ConnInfo *)p;
-  (void)ult;
-  (void)uln;
 
   fprintf(MSG_OUT, "Progress: %s (%g/%g)\n", conn->url, dlnow, dltotal);
   return 0;
@@ -357,14 +360,12 @@ static void new_conn(char *url, GlobalInfo *g)
 }
 
 /* This gets called whenever data is received from the fifo */
-static void fifo_cb(int fd, short event, void *arg)
+static void fifo_cb(int fd _Unused, short event _Unused, void *arg)
 {
   char s[1024];
   long int rv = 0;
   int n = 0;
   GlobalInfo *g = (GlobalInfo *)arg;
-  (void)fd;
-  (void)event;
 
   do {
     s[0]='\0';
@@ -425,11 +426,9 @@ static void clean_fifo(GlobalInfo *g)
     unlink(fifo);
 }
 
-int main(int argc, char **argv)
+int main(int argc _Unused, char **argv _Unused)
 {
   GlobalInfo g;
-  (void)argc;
-  (void)argv;
 
   memset(&g, 0, sizeof(GlobalInfo));
   g.evbase = event_base_new();

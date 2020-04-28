@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 2012 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 2012 - 2018, Daniel Stenberg, <daniel@haxx.se>, et al.
  * Copyright (C) 2010 - 2011, Hoi-Ho Chan, <hoiho.chan@gmail.com>
  *
  * This software is licensed as described in the file COPYING, which
@@ -55,7 +55,6 @@
 #include "select.h"
 #include "strcase.h"
 #include "polarssl_threadlock.h"
-#include "multiif.h"
 #include "curl_printf.h"
 #include "curl_memory.h"
 /* The last #include file should be: */
@@ -594,8 +593,6 @@ polarssl_connect_step2(struct connectdata *conn,
     }
     else
       infof(data, "ALPN, server did not agree to a protocol\n");
-    Curl_multiuse_state(conn, conn->negnpn == CURL_HTTP_VERSION_2 ?
-                        BUNDLE_MULTIPLEX : BUNDLE_NO_MULTIUSE);
   }
 #endif
 
@@ -734,7 +731,7 @@ polarssl_connect_common(struct connectdata *conn,
   struct Curl_easy *data = conn->data;
   struct ssl_connect_data *connssl = &conn->ssl[sockindex];
   curl_socket_t sockfd = conn->sock[sockindex];
-  timediff_t timeout_ms;
+  long timeout_ms;
   int what;
 
   /* check if the connection has already been established */
@@ -781,7 +778,7 @@ polarssl_connect_common(struct connectdata *conn,
         connssl->connecting_state?sockfd:CURL_SOCKET_BAD;
 
       what = Curl_socket_check(readfd, CURL_SOCKET_BAD, writefd,
-                               nonblocking?0:(time_t)timeout_ms);
+                               nonblocking?0:timeout_ms);
       if(what < 0) {
         /* fatal error */
         failf(data, "select/poll on SSL socket, errno: %d", SOCKERRNO);
@@ -911,7 +908,9 @@ const struct Curl_ssl Curl_ssl_polarssl = {
   Curl_none_check_cxn,               /* check_cxn */
   Curl_none_shutdown,                /* shutdown */
   Curl_polarssl_data_pending,        /* data_pending */
-  /* This might cause libcurl to use a weeker random! */
+  /* This might cause libcurl to use a weeker random!
+   * TODO: use Polarssl's CTR-DRBG or HMAC-DRBG
+  */
   Curl_none_random,                  /* random */
   Curl_none_cert_status_request,     /* cert_status_request */
   Curl_polarssl_connect,             /* connect */

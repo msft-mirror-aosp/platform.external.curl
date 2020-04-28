@@ -42,6 +42,16 @@
 #include "curl_memory.h"
 #include "memdebug.h"
 
+/*
+ * TODO (general)
+ *  -incoming server requests
+ *      -server CSeq counter
+ *  -digest authentication
+ *  -connect through proxy
+ *  -pipelining?
+ */
+
+
 #define RTP_PKT_CHANNEL(p)   ((int)((unsigned char)((p)[1])))
 
 #define RTP_PKT_LENGTH(p)  ((((int)((unsigned char)((p)[2]))) << 8) | \
@@ -52,7 +62,10 @@ static CURLcode rtsp_do(struct connectdata *conn, bool *done);
 static CURLcode rtsp_done(struct connectdata *conn, CURLcode, bool premature);
 static CURLcode rtsp_connect(struct connectdata *conn, bool *done);
 static CURLcode rtsp_disconnect(struct connectdata *conn, bool dead);
-static int rtsp_getsock_do(struct connectdata *conn, curl_socket_t *socks);
+
+static int rtsp_getsock_do(struct connectdata *conn,
+                           curl_socket_t *socks,
+                           int numsocks);
 
 /*
  * Parse and write out any available RTP data.
@@ -74,9 +87,11 @@ static unsigned int rtsp_conncheck(struct connectdata *check,
    interface and then we're always _sending_ a request and thus we wait for
    the single socket to become writable only */
 static int rtsp_getsock_do(struct connectdata *conn,
-                           curl_socket_t *socks)
+                           curl_socket_t *socks,
+                           int numsocks)
 {
   /* write mode */
+  (void)numsocks; /* unused, we trust it to be at least 1 */
   socks[0] = conn->sock[FIRSTSOCKET];
   return GETSOCK_WRITESOCK(0);
 }
@@ -221,6 +236,7 @@ static CURLcode rtsp_done(struct connectdata *conn,
     if(data->set.rtspreq == RTSPREQ_RECEIVE &&
             (conn->proto.rtspc.rtp_channel == -1)) {
       infof(data, "Got an RTP Receive with a CSeq of %ld\n", CSeq_recv);
+      /* TODO CPC: Server -> Client logic here */
     }
   }
 
@@ -319,6 +335,8 @@ static CURLcode rtsp_do(struct connectdata *conn, bool *done)
           p_request);
     return CURLE_BAD_FUNCTION_ARGUMENT;
   }
+
+  /* TODO: proxy? */
 
   /* Stream URI. Default to server '*' if not specified */
   if(data->set.str[STRING_RTSP_STREAM_URI]) {
@@ -486,7 +504,7 @@ static CURLcode rtsp_do(struct connectdata *conn, bool *done)
     return result;
 
   if((rtspreq == RTSPREQ_SETUP) || (rtspreq == RTSPREQ_DESCRIBE)) {
-    result = Curl_add_timecondition(conn, req_buffer);
+    result = Curl_add_timecondition(data, req_buffer);
     if(result)
       return result;
   }

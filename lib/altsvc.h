@@ -28,21 +28,20 @@
 #include "llist.h"
 
 enum alpnid {
-  ALPN_none = 0,
-  ALPN_h1 = CURLALTSVC_H1,
-  ALPN_h2 = CURLALTSVC_H2,
-  ALPN_h3 = CURLALTSVC_H3
-};
-
-struct althost {
-  char *host;
-  unsigned short port;
-  enum alpnid alpnid;
+  ALPN_none,
+  ALPN_h1,
+  ALPN_h2,
+  ALPN_h2c,
+  ALPN_h3
 };
 
 struct altsvc {
-  struct althost src;
-  struct althost dst;
+  char *srchost;
+  char *dsthost;
+  unsigned short srcport;
+  unsigned short dstport;
+  enum alpnid srcalpnid;
+  enum alpnid dstalpnid;
   time_t expires;
   bool persist;
   int prio;
@@ -69,8 +68,8 @@ CURLcode Curl_altsvc_parse(struct Curl_easy *data,
 bool Curl_altsvc_lookup(struct altsvcinfo *asi,
                         enum alpnid srcalpnid, const char *srchost,
                         int srcport,
-                        struct altsvc **dstentry,
-                        int versions); /* one or more CURLALTSVC_H* bits */
+                        enum alpnid *dstalpnid, const char **dsthost,
+                        int *dstport);
 #else
 /* disabled */
 #define Curl_altsvc_save(a,b)

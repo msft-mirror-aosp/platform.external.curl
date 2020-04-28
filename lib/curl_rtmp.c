@@ -199,13 +199,13 @@ static CURLcode rtmp_setup_connection(struct connectdata *conn)
     RTMP_Free(r);
     return CURLE_URL_MALFORMAT;
   }
-  conn->proto.rtmp = r;
+  conn->proto.generic = r;
   return CURLE_OK;
 }
 
 static CURLcode rtmp_connect(struct connectdata *conn, bool *done)
 {
-  RTMP *r = conn->proto.rtmp;
+  RTMP *r = conn->proto.generic;
   SET_RCVTIMEO(tv, 10);
 
   r->m_sb.sb_socket = (int)conn->sock[FIRSTSOCKET];
@@ -240,7 +240,7 @@ static CURLcode rtmp_connect(struct connectdata *conn, bool *done)
 static CURLcode rtmp_do(struct connectdata *conn, bool *done)
 {
   struct Curl_easy *data = conn->data;
-  RTMP *r = conn->proto.rtmp;
+  RTMP *r = conn->proto.generic;
 
   if(!RTMP_ConnectStream(r, 0))
     return CURLE_FAILED_INIT;
@@ -268,10 +268,10 @@ static CURLcode rtmp_done(struct connectdata *conn, CURLcode status,
 static CURLcode rtmp_disconnect(struct connectdata *conn,
                                 bool dead_connection)
 {
-  RTMP *r = conn->proto.rtmp;
+  RTMP *r = conn->proto.generic;
   (void)dead_connection;
   if(r) {
-    conn->proto.rtmp = NULL;
+    conn->proto.generic = NULL;
     RTMP_Close(r);
     RTMP_Free(r);
   }
@@ -281,7 +281,7 @@ static CURLcode rtmp_disconnect(struct connectdata *conn,
 static ssize_t rtmp_recv(struct connectdata *conn, int sockindex, char *buf,
                          size_t len, CURLcode *err)
 {
-  RTMP *r = conn->proto.rtmp;
+  RTMP *r = conn->proto.generic;
   ssize_t nread;
 
   (void)sockindex; /* unused */
@@ -302,7 +302,7 @@ static ssize_t rtmp_recv(struct connectdata *conn, int sockindex, char *buf,
 static ssize_t rtmp_send(struct connectdata *conn, int sockindex,
                          const void *buf, size_t len, CURLcode *err)
 {
-  RTMP *r = conn->proto.rtmp;
+  RTMP *r = conn->proto.generic;
   ssize_t num;
 
   (void)sockindex; /* unused */

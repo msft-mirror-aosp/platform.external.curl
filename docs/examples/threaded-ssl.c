@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2017, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -29,7 +29,7 @@
  * (libgcrypt) so far.
  *
  * OpenSSL docs for this:
- *   https://www.openssl.org/docs/man1.0.2/man3/CRYPTO_num_locks.html
+ *   https://www.openssl.org/docs/crypto/threads.html
  * gcrypt docs for this:
  *   https://gnupg.org/documentation/manuals/gcrypt/Multi_002dThreading.html
  */
@@ -135,6 +135,7 @@ int main(int argc, char **argv)
 {
   pthread_t tid[NUMT];
   int i;
+  int error;
   (void)argc; /* we don't use any arguments in this example */
   (void)argv;
 
@@ -144,10 +145,10 @@ int main(int argc, char **argv)
   init_locks();
 
   for(i = 0; i< NUMT; i++) {
-    int error = pthread_create(&tid[i],
-                               NULL, /* default attributes please */
-                               pull_one_url,
-                               (void *)urls[i]);
+    error = pthread_create(&tid[i],
+                           NULL, /* default attributes please */
+                           pull_one_url,
+                           (void *)urls[i]);
     if(0 != error)
       fprintf(stderr, "Couldn't run thread number %d, errno %d\n", i, error);
     else
@@ -156,7 +157,7 @@ int main(int argc, char **argv)
 
   /* now wait for all threads to terminate */
   for(i = 0; i< NUMT; i++) {
-    pthread_join(tid[i], NULL);
+    error = pthread_join(tid[i], NULL);
     fprintf(stderr, "Thread %d terminated\n", i);
   }
 
