@@ -20,7 +20,7 @@ Index: curl/lib/curl_config.h
  
  /* Define to 1 if you have the <openssl/ssl.h> header file. */
  #define HAVE_OPENSSL_SSL_H 1
-@@ -838,9 +838,6 @@
+@@ -847,9 +847,6 @@
  /* Define absolute filename for winbind's ntlm_auth helper. */
  /* #undef NTLM_WB_FILE */
  
@@ -30,7 +30,7 @@ Index: curl/lib/curl_config.h
  /* Name of package */
  #define PACKAGE "curl"
  
-@@ -896,7 +893,7 @@
+@@ -905,7 +902,7 @@
  #define SELECT_TYPE_ARG5 struct timeval *
  
  /* Define to the function return type for select. */
@@ -39,7 +39,7 @@ Index: curl/lib/curl_config.h
  
  /* Define to the type qualifier of arg 2 for send. */
  #define SEND_QUAL_ARG2 const
-@@ -922,24 +919,9 @@
+@@ -931,24 +928,9 @@
  /* The number of bytes in type int */
  #define SIZEOF_INT 4
  
@@ -64,7 +64,7 @@ Index: curl/lib/curl_config.h
  /* Define to 1 if you have the ANSI C header files. */
  #define STDC_HEADERS 1
  
-@@ -1034,7 +1016,7 @@
+@@ -1043,7 +1025,7 @@
  /* #undef USE_THREADS_WIN32 */
  
  /* Use TLS-SRP authentication */
@@ -73,7 +73,7 @@ Index: curl/lib/curl_config.h
  
  /* Use Unix domain sockets */
  #define USE_UNIX_SOCKETS 1
-@@ -1079,7 +1061,7 @@
+@@ -1088,7 +1070,7 @@
  #endif
  
  /* Number of bits in a file offset, on hosts where this is settable. */
