@@ -553,6 +553,9 @@
 /* Define to 1 if you have the <pwd.h> header file. */
 #define HAVE_PWD_H 1
 
+/* Define to 1 if you have the `quiche_conn_set_qlog_fd' function. */
+/* #undef HAVE_QUICHE_CONN_SET_QLOG_FD */
+
 /* Define to 1 if you have the <quiche.h> header file. */
 /* #undef HAVE_QUICHE_H */
 
@@ -691,6 +694,9 @@
 /* Define to 1 if you have the timeval struct. */
 #define HAVE_STRUCT_TIMEVAL 1
 
+/* Define to 1 if suseconds_t is an available type. */
+#define HAVE_SUSECONDS_T 1
+
 /* Define to 1 if you have the <sys/filio.h> header file. */
 /* #undef HAVE_SYS_FILIO_H */
 
@@ -792,6 +798,9 @@
 
 /* Define to 1 if you have the `wolfSSLv3_client_method' function. */
 /* #undef HAVE_WOLFSSLV3_CLIENT_METHOD */
+
+/* if you have wolfSSL_DES_set_odd_parity */
+/* #undef HAVE_WOLFSSL_DES_SET_ODD_PARITY */
 
 /* Define to 1 if you have the `wolfSSL_get_peer_certificate' function. */
 /* #undef HAVE_WOLFSSL_GET_PEER_CERTIFICATE */
