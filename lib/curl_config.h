@@ -34,6 +34,9 @@
 /* to disable FTP */
 #define CURL_DISABLE_FTP 1
 
+/* to disable curl_easy_options */
+/* #undef CURL_DISABLE_GETOPTIONS */
+
 /* to disable Gopher */
 #define CURL_DISABLE_GOPHER 1
 
@@ -57,6 +60,9 @@
 
 /* disable mime API */
 /* #undef CURL_DISABLE_MIME */
+
+/* to disable MQTT */
+/* #undef CURL_DISABLE_MQTT */
 
 /* disable netrc parsing */
 /* #undef CURL_DISABLE_NETRC */
@@ -88,6 +94,9 @@
 /* to disable SMTP */
 #define CURL_DISABLE_SMTP 1
 
+/* to disable socketpair support */
+/* #undef CURL_DISABLE_SOCKETPAIR */
+
 /* to disable TELNET */
 #define CURL_DISABLE_TELNET 1
 
@@ -96,9 +105,6 @@
 
 /* to disable verbose strings */
 /* #undef CURL_DISABLE_VERBOSE_STRINGS */
-
-/* to enable MQTT */
-/* #undef CURL_ENABLE_MQTT */
 
 /* Definition to make a library symbol externally visible. */
 #define CURL_EXTERN_SYMBOL __attribute__ ((__visibility__ ("default")))
@@ -634,8 +640,8 @@
 /* Define to 1 if you have the `SSLv2_client_method' function. */
 /* #undef HAVE_SSLV2_CLIENT_METHOD */
 
-/* Define to 1 if you have the `SSL_get_esni_status' function. */
-/* #undef HAVE_SSL_GET_ESNI_STATUS */
+/* Define to 1 if you have the `SSL_get_ech_status' function. */
+/* #undef HAVE_SSL_GET_ECH_STATUS */
 
 /* Define to 1 if you have the <ssl.h> header file. */
 /* #undef HAVE_SSL_H */
@@ -961,8 +967,8 @@
 /* if BearSSL is enabled */
 /* #undef USE_BEARSSL */
 
-/* if ESNI support is available */
-/* #undef USE_ESNI */
+/* if ECH support is available */
+/* #undef USE_ECH */
 
 /* if GnuTLS is enabled */
 /* #undef USE_GNUTLS */
