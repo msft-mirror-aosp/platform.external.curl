@@ -5,11 +5,11 @@
 #                            | (__| |_| |  _ <| |___
 #                             \___|\___/|_| \_\_____|
 #
-# Copyright (C) 1998 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
+# Copyright (C) 1998 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
 #
 # This software is licensed as described in the file COPYING, which
 # you should have received as part of this distribution. The terms
-# are also available at https://curl.haxx.se/docs/copyright.html.
+# are also available at https://curl.se/docs/copyright.html.
 #
 # You may opt to use, copy, modify, merge, publish, distribute and/or sell
 # copies of the Software, and permit persons to whom the Software is
@@ -44,10 +44,11 @@ noinst_PROGRAMS = chkhostname libauthretry libntlmconnect                \
  lib547 lib548 lib549 lib552 lib553 lib554 lib555 lib556 lib557 lib558   \
  lib559 lib560 lib562 lib564 lib565 lib566 lib567 lib568 lib569 lib570   \
  lib571 lib572 lib573 lib574 lib575 lib576        lib578 lib579 lib582   \
- lib583 lib585 lib586 lib587 lib589 lib590 lib591 lib597 lib598 lib599   \
- lib643 lib644 lib645 lib650 lib651 lib652 lib653 lib654 lib655 lib658   \
+ lib583 lib584 lib585 lib586 lib587 lib589 lib590 lib591 lib597 lib598   \
+ lib599 \
+ lib643        lib645 lib650 lib651 lib652 lib653 lib654 lib655 lib658   \
  lib659 lib661 lib666 lib667 lib668 \
- lib670 lib671 lib672 lib673 lib674 \
+ lib670 lib671 lib672 lib673 lib674 lib676 lib677 lib678 \
  lib1156 \
  lib1500 lib1501 lib1502 lib1503 lib1504 lib1505 lib1506 lib1507 lib1508 \
  lib1509 lib1510 lib1511 lib1512 lib1513 lib1514 lib1515         lib1517 \
@@ -56,9 +57,10 @@ noinst_PROGRAMS = chkhostname libauthretry libntlmconnect                \
  lib1534 lib1535 lib1536 lib1537 lib1538 lib1539 \
  lib1540         \
  lib1550 lib1551 lib1552 lib1553 lib1554 lib1555 lib1556 lib1557 \
- lib1558 lib1559 lib1560 lib1564 lib1565 lib1567 \
+ lib1558 lib1559 lib1560 lib1564 lib1565 lib1567 lib1568 lib1569 \
  lib1591 lib1592 lib1593 lib1594 lib1596 \
          lib1905 lib1906 lib1907 lib1908 lib1910 lib1911 lib1912 lib1913 \
+         lib1915 lib1916 lib1917 lib1918 lib1933 lib1934 lib1935 lib1936 \
          lib3010
 
 chkdecimalpoint_SOURCES = chkdecimalpoint.c ../../lib/mprintf.c \
@@ -301,6 +303,9 @@ lib582_CPPFLAGS = $(AM_CPPFLAGS)
 lib583_SOURCES = lib583.c $(SUPPORTFILES)
 lib583_CPPFLAGS = $(AM_CPPFLAGS)
 
+lib584_SOURCES = lib589.c $(SUPPORTFILES)
+lib584_CPPFLAGS = $(AM_CPPFLAGS) -DLIB584
+
 lib585_SOURCES = lib500.c $(SUPPORTFILES) $(TESTUTIL) $(TSTTRACE) $(MULTIBYTE)
 lib585_LDADD = $(TESTUTIL_LIBS)
 lib585_CPPFLAGS = $(AM_CPPFLAGS) -DLIB585
@@ -333,9 +338,6 @@ lib599_CPPFLAGS = $(AM_CPPFLAGS)
 
 lib643_SOURCES = lib643.c $(SUPPORTFILES)
 lib643_CPPFLAGS = $(AM_CPPFLAGS)
-
-lib644_SOURCES = lib643.c $(SUPPORTFILES)
-lib644_CPPFLAGS = $(AM_CPPFLAGS) -DLIB644
 
 lib645_SOURCES = lib643.c $(SUPPORTFILES)
 lib645_CPPFLAGS = $(AM_CPPFLAGS) -DLIB645
@@ -399,6 +401,18 @@ lib673_CPPFLAGS = $(AM_CPPFLAGS) -DLIB673
 lib674_SOURCES = lib674.c $(SUPPORTFILES) $(TESTUTIL) $(WARNLESS)
 lib674_LDADD = $(TESTUTIL_LIBS)
 lib674_CPPFLAGS = $(AM_CPPFLAGS)
+
+lib676_SOURCES = lib676.c $(SUPPORTFILES) $(TESTUTIL) $(WARNLESS)
+lib676_LDADD = $(TESTUTIL_LIBS)
+lib676_CPPFLAGS = $(AM_CPPFLAGS)
+
+lib677_SOURCES = lib677.c $(SUPPORTFILES) $(TESTUTIL) $(WARNLESS) $(MULTIBYTE)
+lib677_LDADD = $(TESTUTIL_LIBS)
+lib677_CPPFLAGS = $(AM_CPPFLAGS)
+
+lib678_SOURCES = lib678.c $(SUPPORTFILES) $(TESTUTIL) $(WARNLESS) $(MULTIBYTE)
+lib678_LDADD = $(TESTUTIL_LIBS)
+lib678_CPPFLAGS = $(AM_CPPFLAGS)
 
 lib1500_SOURCES = lib1500.c $(SUPPORTFILES) $(TESTUTIL)
 lib1500_LDADD = $(TESTUTIL_LIBS)
@@ -480,7 +494,8 @@ lib1520_CPPFLAGS = $(AM_CPPFLAGS) -DLIB1520
 nodist_lib1521_SOURCES = lib1521.c $(SUPPORTFILES)
 lib1521_CPPFLAGS = $(AM_CPPFLAGS) -I$(srcdir)
 
-lib1522_SOURCES = lib1522.c $(SUPPORTFILES)
+lib1522_SOURCES = lib1522.c $(SUPPORTFILES) $(TESTUTIL) $(TSTTRACE) 
+lib1522_LDADD = $(TESTUTIL_LIBS)
 lib1522_CPPFLAGS = $(AM_CPPFLAGS)
 
 lib1523_SOURCES = lib1523.c $(SUPPORTFILES)
@@ -599,6 +614,12 @@ lib1565_CPPFLAGS = $(AM_CPPFLAGS)
 lib1567_SOURCES = lib1567.c $(SUPPORTFILES)
 lib1567_CPPFLAGS = $(AM_CPPFLAGS)
 
+lib1568_SOURCES = lib1568.c $(SUPPORTFILES)
+lib1568_CPPFLAGS = $(AM_CPPFLAGS)
+
+lib1569_SOURCES = lib1569.c $(SUPPORTFILES)
+lib1569_CPPFLAGS = $(AM_CPPFLAGS)
+
 lib1591_SOURCES = lib1591.c $(SUPPORTFILES) $(TESTUTIL) $(WARNLESS)
 lib1591_LDADD = $(TESTUTIL_LIBS)
 lib1591_CPPFLAGS = $(AM_CPPFLAGS) -DLIB1591
@@ -648,6 +669,35 @@ lib1912_CPPFLAGS = $(AM_CPPFLAGS)
 lib1913_SOURCES = lib1913.c $(SUPPORTFILES) $(TESTUTIL) $(WARNLESS)
 lib1913_LDADD = $(TESTUTIL_LIBS)
 lib1913_CPPFLAGS = $(AM_CPPFLAGS)
+
+lib1915_SOURCES = lib1915.c $(SUPPORTFILES) $(TESTUTIL) $(WARNLESS)
+lib1915_LDADD = $(TESTUTIL_LIBS)
+lib1915_CPPFLAGS = $(AM_CPPFLAGS)
+
+lib1916_SOURCES = lib1916.c $(SUPPORTFILES) $(WARNLESS)
+lib1916_CPPFLAGS = $(AM_CPPFLAGS)
+
+lib1917_SOURCES = lib1916.c $(SUPPORTFILES) $(WARNLESS)
+lib1917_CPPFLAGS = $(AM_CPPFLAGS) -DLIB1917
+
+lib1918_SOURCES = lib1918.c $(SUPPORTFILES) $(WARNLESS)
+lib1918_CPPFLAGS = $(AM_CPPFLAGS)
+
+lib1933_SOURCES = lib1933.c $(SUPPORTFILES) $(TESTUTIL) $(WARNLESS)
+lib1933_LDADD = $(TESTUTIL_LIBS)
+lib1933_CPPFLAGS = $(AM_CPPFLAGS)
+
+lib1934_SOURCES = lib1934.c $(SUPPORTFILES) $(TESTUTIL) $(WARNLESS)
+lib1934_LDADD = $(TESTUTIL_LIBS)
+lib1934_CPPFLAGS = $(AM_CPPFLAGS)
+
+lib1935_SOURCES = lib1935.c $(SUPPORTFILES) $(TESTUTIL) $(WARNLESS)
+lib1935_LDADD = $(TESTUTIL_LIBS)
+lib1935_CPPFLAGS = $(AM_CPPFLAGS)
+
+lib1936_SOURCES = lib1936.c $(SUPPORTFILES) $(TESTUTIL) $(WARNLESS)
+lib1936_LDADD = $(TESTUTIL_LIBS)
+lib1936_CPPFLAGS = $(AM_CPPFLAGS)
 
 lib3010_SOURCES = lib3010.c $(SUPPORTFILES) $(TESTUTIL) $(WARNLESS)
 lib3010_LDADD = $(TESTUTIL_LIBS)
