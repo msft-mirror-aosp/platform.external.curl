@@ -1,4 +1,4 @@
-# generated automatically by aclocal 1.16.2 -*- Autoconf -*-
+# generated automatically by aclocal 1.16.3 -*- Autoconf -*-
 
 # Copyright (C) 1996-2020 Free Software Foundation, Inc.
 
@@ -35,7 +35,7 @@ AC_DEFUN([AM_AUTOMAKE_VERSION],
 [am__api_version='1.16'
 dnl Some users find AM_AUTOMAKE_VERSION and mistake it for a way to
 dnl require some minimum version.  Point them to the right macro.
-m4_if([$1], [1.16.2], [],
+m4_if([$1], [1.16.3], [],
       [AC_FATAL([Do not call $0, use AM_INIT_AUTOMAKE([$1]).])])dnl
 ])
 
@@ -51,7 +51,7 @@ m4_define([_AM_AUTOCONF_VERSION], [])
 # Call AM_AUTOMAKE_VERSION and AM_AUTOMAKE_VERSION so they can be traced.
 # This function is AC_REQUIREd by AM_INIT_AUTOMAKE.
 AC_DEFUN([AM_SET_CURRENT_AUTOMAKE_VERSION],
-[AM_AUTOMAKE_VERSION([1.16.2])dnl
+[AM_AUTOMAKE_VERSION([1.16.3])dnl
 m4_ifndef([AC_AUTOCONF_VERSION],
   [m4_copy([m4_PACKAGE_VERSION], [AC_AUTOCONF_VERSION])])dnl
 _AM_AUTOCONF_VERSION(m4_defn([AC_AUTOCONF_VERSION]))])
@@ -739,12 +739,7 @@ AC_DEFUN([AM_MISSING_HAS_RUN],
 [AC_REQUIRE([AM_AUX_DIR_EXPAND])dnl
 AC_REQUIRE_AUX_FILE([missing])dnl
 if test x"${MISSING+set}" != xset; then
-  case $am_aux_dir in
-  *\ * | *\	*)
-    MISSING="\${SHELL} \"$am_aux_dir/missing\"" ;;
-  *)
-    MISSING="\${SHELL} $am_aux_dir/missing" ;;
-  esac
+  MISSING="\${SHELL} '$am_aux_dir/missing'"
 fi
 # Use eval to expand $SHELL
 if eval "$MISSING --is-lightweight"; then
@@ -1172,12 +1167,23 @@ AC_SUBST([am__untar])
 ]) # _AM_PROG_TAR
 
 m4_include([m4/ax_compile_check_sizeof.m4])
+m4_include([m4/curl-amissl.m4])
+m4_include([m4/curl-bearssl.m4])
 m4_include([m4/curl-compilers.m4])
 m4_include([m4/curl-confopts.m4])
 m4_include([m4/curl-functions.m4])
+m4_include([m4/curl-gnutls.m4])
+m4_include([m4/curl-mbedtls.m4])
+m4_include([m4/curl-mesalink.m4])
+m4_include([m4/curl-nss.m4])
 m4_include([m4/curl-openssl.m4])
 m4_include([m4/curl-override.m4])
 m4_include([m4/curl-reentrant.m4])
+m4_include([m4/curl-rustls.m4])
+m4_include([m4/curl-schannel.m4])
+m4_include([m4/curl-sectransp.m4])
+m4_include([m4/curl-sysconfig.m4])
+m4_include([m4/curl-wolfssl.m4])
 m4_include([m4/libtool.m4])
 m4_include([m4/ltoptions.m4])
 m4_include([m4/ltsugar.m4])
