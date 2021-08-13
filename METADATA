@@ -16,4 +16,7 @@ third_party {
     month: 8
     day: 10
   }
+  security {
+    tag: "NVD-CPE2.3:cpe:/a:haxx:curl:7.78.0"
+  }
 }
