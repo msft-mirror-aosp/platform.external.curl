@@ -7,11 +7,11 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
- * are also available at https://curl.haxx.se/docs/copyright.html.
+ * are also available at https://curl.se/docs/copyright.html.
  *
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
  * copies of the Software, and permit persons to whom the Software is
@@ -72,12 +72,6 @@ struct pollfd
    therefore defined here */
 #define CURL_CSELECT_IN2 (CURL_CSELECT_ERR << 1)
 
-int Curl_select(curl_socket_t maxfd,
-                fd_set *fds_read,
-                fd_set *fds_write,
-                fd_set *fds_err,
-                timediff_t timeout_ms);
-
 int Curl_socket_check(curl_socket_t readfd, curl_socket_t readfd2,
                       curl_socket_t writefd,
                       timediff_t timeout_ms);
@@ -112,7 +106,11 @@ int tpf_select_libcurl(int maxfds, fd_set* reads, fd_set* writes,
   } \
 } while(0)
 #else
+#ifdef HAVE_POLL_FINE
+#define VALID_SOCK(s) ((s) >= 0)  /* FD_SETSIZE is irrelevant for poll */
+#else
 #define VALID_SOCK(s) (((s) >= 0) && ((s) < FD_SETSIZE))
+#endif
 #define VERIFY_SOCK(x) do { \
   if(!VALID_SOCK(x)) { \
     SET_SOCKERRNO(EINVAL); \
