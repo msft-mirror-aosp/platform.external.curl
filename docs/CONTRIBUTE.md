@@ -8,19 +8,19 @@ flaws or bugs.
 
 ### Join the Community
 
-Skip over to [https://curl.haxx.se/mail/](https://curl.haxx.se/mail/) and join
+Skip over to [https://curl.se/mail/](https://curl.se/mail/) and join
 the appropriate mailing list(s).  Read up on details before you post
 questions. Read this file before you start sending patches! We prefer
 questions sent to and discussions being held on the mailing list(s), not sent
 to individuals.
 
 Before posting to one of the curl mailing lists, please read up on the
-[mailing list etiquette](https://curl.haxx.se/mail/etiquette.html).
+[mailing list etiquette](https://curl.se/mail/etiquette.html).
 
-We also hang out on IRC in #curl on irc.freenode.net
+We also hang out on IRC in #curl on libera.chat
 
 If you're at all interested in the code side of things, consider clicking
-'watch' on the [curl repo on github](https://github.com/curl/curl) to be
+'watch' on the [curl repo on GitHub](https://github.com/curl/curl) to be
 notified of pull requests and new issues posted there.
 
 ### License and copyright
@@ -49,12 +49,12 @@ always provide us with your full real name when contributing!
 ### What To Read
 
 Source code, the man pages, the [INTERNALS
-document](https://curl.haxx.se/dev/internals.html),
-[TODO](https://curl.haxx.se/docs/todo.html),
-[KNOWN_BUGS](https://curl.haxx.se/docs/knownbugs.html) and the [most recent
-changes](https://curl.haxx.se/dev/sourceactivity.html) in git. Just lurking on
+document](https://curl.se/dev/internals.html),
+[TODO](https://curl.se/docs/todo.html),
+[KNOWN_BUGS](https://curl.se/docs/knownbugs.html) and the [most recent
+changes](https://curl.se/dev/sourceactivity.html) in git. Just lurking on
 the [curl-library mailing
-list](https://curl.haxx.se/mail/list.cgi?list=curl-library) will give you a
+list](https://curl.se/mail/list.cgi?list=curl-library) will give you a
 lot of insights on what's going on right now. Asking there is a good idea too.
 
 ## Write a good patch
@@ -62,7 +62,7 @@ lot of insights on what's going on right now. Asking there is a good idea too.
 ### Follow code style
 
 When writing C code, follow the
-[CODE_STYLE](https://curl.haxx.se/dev/code-style.html) already established in
+[CODE_STYLE](https://curl.se/dev/code-style.html) already established in
 the project. Consistent style makes code easier to read and mistakes less
 likely to happen. Run `make checksrc` before you submit anything, to make sure
 you follow the basic style. That script doesn't verify everything, but if it
@@ -129,9 +129,9 @@ verified your changes.
 ### How to get your changes into the main sources
 
 Ideally you file a [pull request on
-github](https://github.com/curl/curl/pulls), but you can also send your plain
+GitHub](https://github.com/curl/curl/pulls), but you can also send your plain
 patch to [the curl-library mailing
-list](https://curl.haxx.se/mail/list.cgi?list=curl-library).
+list](https://curl.se/mail/list.cgi?list=curl-library).
 
 Either way, your change will be reviewed and discussed there and you will be
 expected to correct flaws pointed out and update accordingly, or the change
@@ -151,7 +151,7 @@ changes merged.
 
 We strongly prefer pull requests to mailed patches, as it makes it a proper
 git commit that is easy to merge and they are easy to track and not that easy
-to loose in the flood of many emails, like they sometimes do on the mailing
+to lose in the flood of many emails, like they sometimes do on the mailing
 lists.
 
 Every pull request submitted will automatically be tested in several different
@@ -185,7 +185,6 @@ Consider the following table while looking at pull request failures:
  | LGTM analysis:  C/C++               | stable | new findings               |
  | buildbot/curl_winssl_ ...           | stable | all errors and failures    |
  | continuous-integration/appveyor/pr  | stable | all errors and failures    |
- | continuous-integration/travis-ci/pr | stable | all errors and failures    |
  | curl.curl (linux ...)               | stable | all errors and failures    |
  | curl.curl (windows ...)             | flaky  | repetitive errors/failures |
  | deepcode-ci-bot                     | stable | new findings               |
@@ -304,4 +303,4 @@ For Windows:
  - [https://gnuwin32.sourceforge.io/packages/diffutils.htm](https://gnuwin32.sourceforge.io/packages/diffutils.htm)
 
 ### Useful resources
-* [Webinar on getting code into cURL](https://www.youtube.com/watch?v=QmZ3W1d6LQI)
+ - [Webinar on getting code into cURL](https://www.youtube.com/watch?v=QmZ3W1d6LQI)

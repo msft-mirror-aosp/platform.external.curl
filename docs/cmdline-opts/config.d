@@ -19,9 +19,12 @@ between the option and its parameter.
 If the parameter contains whitespace (or starts with : or =), the parameter
 must be enclosed within quotes. Within double quotes, the following escape
 sequences are available: \\\\, \\", \\t, \\n, \\r and \\v. A backslash
-preceding any other letter is ignored. If the first column of a config line is
-a '#' character, the rest of the line will be treated as a comment. Only write
-one option per physical line in the config file.
+preceding any other letter is ignored.
+
+If the first column of a config line is a '#' character, the rest of the line
+will be treated as a comment.
+
+Only write one option per physical line in the config file.
 
 Specify the filename to --config as '-' to make curl read the file from stdin.
 
@@ -29,7 +32,7 @@ Note that to be able to specify a URL in the config file, you need to specify
 it using the --url option, and not by simply writing the URL on its own
 line. So, it could look similar to this:
 
-url = "https://curl.haxx.se/docs/"
+url = "https://curl.se/docs/"
 
 When curl is invoked, it (unless --disable is used) checks for a default
 config file and uses it if found. The default config file is checked for in
