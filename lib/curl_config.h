@@ -589,12 +589,6 @@
 /* Define to 1 if you have the sigsetjmp function or macro. */
 /* #undef HAVE_SIGSETJMP */
 
-/* Define to 1 if sig_atomic_t is an available typedef. */
-#define HAVE_SIG_ATOMIC_T 1
-
-/* Define to 1 if sig_atomic_t is already defined as volatile. */
-/* #undef HAVE_SIG_ATOMIC_T_VOLATILE */
-
 /* Define to 1 if struct sockaddr_in6 has the sin6_scope_id member */
 #define HAVE_SOCKADDR_IN6_SIN6_SCOPE_ID 1
 
@@ -621,6 +615,9 @@
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #define HAVE_STDINT_H 1
+
+/* Define to 1 if you have the <stdio.h> header file. */
+#define HAVE_STDIO_H 1
 
 /* Define to 1 if you have the <stdlib.h> header file. */
 #define HAVE_STDLIB_H 1
@@ -766,9 +763,6 @@
 /* Define to 1 if you have the winsock2.h header file. */
 /* #undef HAVE_WINSOCK2_H */
 
-/* Define to 1 if you have the winsock.h header file. */
-/* #undef HAVE_WINSOCK_H */
-
 /* Define to 1 if you have the <wolfssh/ssh.h> header file. */
 /* #undef HAVE_WOLFSSH_SSH_H */
 
@@ -907,7 +901,9 @@
 /* The number of bytes in type short */
 #define SIZEOF_SHORT 2
 
-/* Define to 1 if you have the ANSI C header files. */
+/* Define to 1 if all of the C90 standard headers exist (not just the ones
+   required in a freestanding environment). This macro is provided for
+   backward compatibility; new code need not use it. */
 #define STDC_HEADERS 1
 
 /* Define to the type of arg 3 for strerror_r. */
@@ -1039,11 +1035,6 @@
 /* Define to 1 if OS is AIX. */
 #ifndef _ALL_SOURCE
 /* #  undef _ALL_SOURCE */
-#endif
-
-/* Enable large inode numbers on Mac OS X 10.5.  */
-#ifndef _DARWIN_USE_64_BIT_INODE
-# define _DARWIN_USE_64_BIT_INODE 1
 #endif
 
 /* Number of bits in a file offset, on hosts where this is settable. */
