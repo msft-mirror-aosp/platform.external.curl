@@ -33,7 +33,6 @@ set(signature_call_conv)
 if(HAVE_WINDOWS_H)
   add_header_include(HAVE_WINSOCK2_H "winsock2.h")
   add_header_include(HAVE_WINDOWS_H "windows.h")
-  add_header_include(HAVE_WINSOCK_H "winsock.h")
   set(_source_epilogue
       "${_source_epilogue}\n#ifndef WIN32_LEAN_AND_MEAN\n#define WIN32_LEAN_AND_MEAN\n#endif")
   set(signature_call_conv "PASCAL")
@@ -220,28 +219,6 @@ int main(void) {
   return 0;
 }" HAVE_STRUCT_TIMEVAL)
 
-set(HAVE_SIG_ATOMIC_T 1)
-set(CMAKE_REQUIRED_FLAGS)
-if(HAVE_SIGNAL_H)
-  set(CMAKE_REQUIRED_FLAGS "-DHAVE_SIGNAL_H")
-  set(CMAKE_EXTRA_INCLUDE_FILES "signal.h")
-endif()
-check_type_size("sig_atomic_t" SIZEOF_SIG_ATOMIC_T)
-if(HAVE_SIZEOF_SIG_ATOMIC_T)
-  check_c_source_compiles("
-    #ifdef HAVE_SIGNAL_H
-    #  include <signal.h>
-    #endif
-    int main(void) {
-      static volatile sig_atomic_t dummy = 0;
-      (void)dummy;
-      return 0;
-    }" HAVE_SIG_ATOMIC_T_NOT_VOLATILE)
-  if(NOT HAVE_SIG_ATOMIC_T_NOT_VOLATILE)
-    set(HAVE_SIG_ATOMIC_T_VOLATILE 1)
-  endif()
-endif()
-
 if(HAVE_WINDOWS_H)
   set(CMAKE_EXTRA_INCLUDE_FILES winsock2.h)
 else()
@@ -259,6 +236,9 @@ endif()
 unset(CMAKE_TRY_COMPILE_TARGET_TYPE)
 
 if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+  if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  # only try this on non-macOS
+
   # if not cross-compilation...
   include(CheckCSourceRuns)
   set(CMAKE_REQUIRED_FLAGS "")
@@ -301,5 +281,6 @@ if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
         }
         return 0;
     }" HAVE_POLL_FINE)
+  endif()
 endif()
 
