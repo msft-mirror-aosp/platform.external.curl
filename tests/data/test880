@@ -54,7 +54,7 @@ CURL_GETHOSTNAME=curlhost
 LD_PRELOAD=%PWD/libtest/.libs/libhostname.so
  </setenv>
  <command>
-pop3://%HOSTIP:%POP3PORT/%TESTNUMBER -u user:secret
+pop3://%HOSTIP:%POP3PORT/880 -u user:secret
 </command>
 <precheck>
 chkhostname curlhost
@@ -71,7 +71,7 @@ TlRMTVNTUAABAAAABoIIAAAAAAAAAAAAAAAAAAAAAAA=
 *
 AUTH PLAIN
 AHVzZXIAc2VjcmV0
-RETR %TESTNUMBER
+RETR 880
 QUIT
 </protocol>
 </verify>
