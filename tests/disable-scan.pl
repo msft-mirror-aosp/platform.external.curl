@@ -6,11 +6,11 @@
 #                            | (__| |_| |  _ <| |___
 #                             \___|\___/|_| \_\_____|
 #
-# Copyright (C) 2010 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
+# Copyright (C) 2010-2019, Daniel Stenberg, <daniel@haxx.se>, et al.
 #
 # This software is licensed as described in the file COPYING, which
 # you should have received as part of this distribution. The terms
-# are also available at https://curl.se/docs/copyright.html.
+# are also available at https://curl.haxx.se/docs/copyright.html.
 #
 # You may opt to use, copy, modify, merge, publish, distribute and/or sell
 # copies of the Software, and permit persons to whom the Software is
@@ -36,9 +36,8 @@ my %docs;
 my $root=$ARGV[0] || ".";
 my $DOCS="CURL-DISABLE.md";
 
-sub scanconf {
-    my ($f)=@_;
-    open S, "<$f";
+sub scan_configure {
+    open S, "<$root/configure.ac";
     while(<S>) {
         if(/(CURL_DISABLE_[A-Z_]+)/g) {
             my ($sym)=($1);
@@ -46,17 +45,6 @@ sub scanconf {
         }
     }
     close S;
-}
-
-sub scan_configure {
-    opendir(my $m, "$root/m4") || die "Can't opendir $root/m4: $!";
-    my @m4 = grep { /\.m4$/ } readdir($m);
-    closedir $m;
-    scanconf("$root/configure.ac");
-    # scan all m4 files too
-    for my $e (@m4) {
-        scanconf("$root/m4/$e");
-    }
 }
 
 sub scan_file {
@@ -74,7 +62,7 @@ sub scan_file {
 sub scan_dir {
     my ($dir)=@_;
     opendir(my $dh, $dir) || die "Can't opendir $dir: $!";
-    my @cfiles = grep { /\.[ch]\z/ && -f "$dir/$_" } readdir($dh);
+    my @cfiles = grep { /\.c\z/ && -f "$dir/$_" } readdir($dh);
     closedir $dh;
     for my $f (sort @cfiles) {
         scan_file("$dir/$f");
