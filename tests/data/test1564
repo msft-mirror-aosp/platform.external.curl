@@ -12,14 +12,11 @@ wakeup
 
 # Client-side
 <client>
-<features>
-wakeup
-</features>
 <server>
 none
 </server>
 <tool>
-lib%TESTNUMBER
+lib1564
 </tool>
 <name>
 wakeup before poll with no easy handles
