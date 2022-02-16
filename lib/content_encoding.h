@@ -7,11 +7,11 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
- * are also available at https://curl.se/docs/copyright.html.
+ * are also available at https://curl.haxx.se/docs/copyright.html.
  *
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
  * copies of the Software, and permit persons to whom the Software is
@@ -33,23 +33,23 @@ struct contenc_writer {
 struct content_encoding {
   const char *name;        /* Encoding name. */
   const char *alias;       /* Encoding name alias. */
-  CURLcode (*init_writer)(struct Curl_easy *data,
+  CURLcode (*init_writer)(struct connectdata *conn,
                           struct contenc_writer *writer);
-  CURLcode (*unencode_write)(struct Curl_easy *data,
+  CURLcode (*unencode_write)(struct connectdata *conn,
                              struct contenc_writer *writer,
                              const char *buf, size_t nbytes);
-  void (*close_writer)(struct Curl_easy *data,
+  void (*close_writer)(struct connectdata *conn,
                        struct contenc_writer *writer);
   size_t paramsize;
 };
 
 
-CURLcode Curl_build_unencoding_stack(struct Curl_easy *data,
+CURLcode Curl_build_unencoding_stack(struct connectdata *conn,
                                      const char *enclist, int maybechunked);
-CURLcode Curl_unencode_write(struct Curl_easy *data,
+CURLcode Curl_unencode_write(struct connectdata *conn,
                              struct contenc_writer *writer,
                              const char *buf, size_t nbytes);
-void Curl_unencode_cleanup(struct Curl_easy *data);
+void Curl_unencode_cleanup(struct connectdata *conn);
 char *Curl_all_content_encodings(void);
 
 #endif /* HEADER_CURL_CONTENT_ENCODING_H */
