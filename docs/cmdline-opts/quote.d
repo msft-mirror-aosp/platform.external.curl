@@ -1,12 +1,10 @@
 Long: quote
-Arg: <command>
 Short: Q
 Help: Send command(s) to server before transfer
 Protocols: FTP SFTP
 Category: ftp sftp
-Example: --quote "DELE file" ftp://example.com/foo
-Added: 5.3
 ---
+
 Send an arbitrary command to the remote FTP or SFTP server. Quote commands are
 sent BEFORE the transfer takes place (just after the initial PWD command in an
 FTP transfer, to be exact). To make commands take place after a successful
@@ -15,13 +13,12 @@ has changed the working directory, just before the transfer command(s), prefix
 the command with a '+' (this is only supported for FTP). You may specify any
 number of commands.
 
-By default curl will stop at first failure. To make curl continue even if the
-command fails, prefix the command with an asterisk (*). Otherwise, if the
-server returns failure for one of the commands, the entire operation will be
-aborted.
+If the server returns failure for one of the commands, the entire operation
+will be aborted. You must send syntactically correct FTP commands as RFC 959
+defines to FTP servers, or one of the commands listed below to SFTP servers.
 
-You must send syntactically correct FTP commands as RFC 959 defines to FTP
-servers, or one of the commands listed below to SFTP servers.
+Prefix the command with an asterisk (*) to make curl continue even if the
+command fails as by default curl will stop at first failure.
 
 This option can be used multiple times.
 
@@ -33,7 +30,7 @@ all supported SFTP quote commands:
 .IP "atime date file"
 The atime command sets the last access time of the file named by the file
 operand. The <date expression> can be all sorts of date strings, see the
-*curl_getdate(3)* man page for date expression details. (Added in 7.73.0)
+\fIcurl_getdate(3)\fP man page for date expression details. (Added in 7.73.0)
 .IP "chgrp group file"
 The chgrp command sets the group ID of the file named by the file operand to
 the group ID specified by the group operand. The group operand is a decimal
@@ -53,7 +50,7 @@ The mkdir command creates the directory named by the directory_name operand.
 .IP "mtime date file"
 The mtime command sets the last modification time of the file named by the
 file operand. The <date expression> can be all sorts of date strings, see the
-*curl_getdate(3)* man page for date expression details. (Added in 7.73.0)
+\fIcurl_getdate(3)\fP man page for date expression details. (Added in 7.73.0)
 .IP "pwd"
 The pwd command returns the absolute pathname of the current working directory.
 .IP "rename source target"
