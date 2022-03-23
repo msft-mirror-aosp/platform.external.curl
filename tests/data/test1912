@@ -19,7 +19,7 @@ none
 Cross validate that gcc-typecheck macros match the option types.
 </name>
 <tool>
-lib%TESTNUMBER
+lib1912
 </tool>
 
 </client>

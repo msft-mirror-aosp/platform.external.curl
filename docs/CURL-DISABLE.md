@@ -1,9 +1,5 @@
 # Code defines to disable features and protocols
 
-## CURL_DISABLE_ALTSVC
-
-Disable support for Alt-Svc: HTTP headers.
-
 ## CURL_DISABLE_COOKIES
 
 Disable support for HTTP cookies.
@@ -36,10 +32,6 @@ about existing options to `curl_easy_setopt`.
 ## CURL_DISABLE_GOPHER
 
 Disable the GOPHER protocol.
-
-## CURL_DISABLE_HSTS
-
-Disable the HTTP Strict Transport Security support.
 
 ## CURL_DISABLE_HTTP
 
@@ -78,10 +70,6 @@ Disable MQTT support.
 
 Disable the netrc parser.
 
-## CURL_DISABLE_NTLM
-
-Disable support for NTLM.
-
 ## CURL_DISABLE_OPENSSL_AUTO_LOAD_CONFIG
 
 Disable the auto load config support in the OpenSSL backend.
@@ -90,9 +78,9 @@ Disable the auto load config support in the OpenSSL backend.
 
 Disable date parsing
 
-## CURL_DISABLE_POP3
+## CURL_DISABLE_POP
 
-Disable the POP3 protocol
+Disable the POP(S) protocols
 
 ## CURL_DISABLE_PROGRESS_METER
 
