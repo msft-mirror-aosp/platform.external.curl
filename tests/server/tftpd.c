@@ -15,7 +15,7 @@
  */
 
 /*
- * Copyright (C) 2005 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 2005 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
  * Copyright (c) 1983, Regents of the University of California.
  * All rights reserved.
  *
@@ -179,7 +179,7 @@ static struct errmsg errmsgs[] = {
   { -1,           0 }
 };
 
-static const struct formats formata[] = {
+static struct formats formata[] = {
   { "netascii",   1 },
   { "octet",      0 },
   { NULL,         0 }
@@ -212,10 +212,9 @@ static const char *ipv_inuse = "IPv4";
 
 const  char *serverlogfile = DEFAULT_LOGFILE;
 static const char *pidname = ".tftpd.pid";
-static const char *portname = NULL; /* none by default */
+static const char *portfile = NULL;
 static int serverlogslocked = 0;
 static int wrotepidfile = 0;
-static int wroteportfile = 0;
 
 #ifdef HAVE_SIGSETJMP
 static sigjmp_buf timeoutbuf;
@@ -245,9 +244,9 @@ static int do_tftp(struct testcase *test, struct tftphdr *tp, ssize_t size);
 
 static int validate_access(struct testcase *test, const char *fname, int mode);
 
-static void sendtftp(struct testcase *test, const struct formats *pf);
+static void sendtftp(struct testcase *test, struct formats *pf);
 
-static void recvtftp(struct testcase *test, const struct formats *pf);
+static void recvtftp(struct testcase *test, struct formats *pf);
 
 static void nak(int error);
 
@@ -289,10 +288,6 @@ static void timer(int signum)
     if(wrotepidfile) {
       wrotepidfile = 0;
       unlink(pidname);
-    }
-    if(wroteportfile) {
-      wroteportfile = 0;
-      unlink(portname);
     }
     if(serverlogslocked) {
       serverlogslocked = 0;
@@ -560,6 +555,7 @@ int main(int argc, char **argv)
   int flag;
   int rc;
   int error;
+  long pid;
   struct testcase test;
   int result = 0;
 
@@ -584,7 +580,7 @@ int main(int argc, char **argv)
     else if(!strcmp("--portfile", argv[arg])) {
       arg++;
       if(argc>arg)
-        portname = argv[arg++];
+        portfile = argv[arg++];
     }
     else if(!strcmp("--logfile", argv[arg])) {
       arg++;
@@ -626,7 +622,6 @@ int main(int argc, char **argv)
            " --version\n"
            " --logfile [file]\n"
            " --pidfile [file]\n"
-           " --portfile [file]\n"
            " --ipv4\n"
            " --ipv6\n"
            " --port [port]\n"
@@ -641,6 +636,8 @@ int main(int argc, char **argv)
 #endif
 
   install_signal_handlers(true);
+
+  pid = (long)getpid();
 
 #ifdef ENABLE_IPV6
   if(!use_ipv6)
@@ -745,9 +742,9 @@ int main(int argc, char **argv)
     goto tftpd_cleanup;
   }
 
-  if(portname) {
-    wroteportfile = write_portfile(portname, port);
-    if(!wroteportfile) {
+  if(portfile) {
+    wrotepidfile = write_portfile(portfile, port);
+    if(!wrotepidfile) {
       result = 1;
       goto tftpd_cleanup;
     }
@@ -824,6 +821,11 @@ int main(int argc, char **argv)
     sclose(peer);
     peer = CURL_SOCKET_BAD;
 
+    if(test.ofile > 0) {
+      close(test.ofile);
+      test.ofile = 0;
+    }
+
     if(got_exit_signal)
       break;
 
@@ -852,8 +854,8 @@ tftpd_cleanup:
 
   if(wrotepidfile)
     unlink(pidname);
-  if(wroteportfile)
-    unlink(portname);
+  if(portfile)
+    unlink(portfile);
 
   if(serverlogslocked) {
     serverlogslocked = 0;
@@ -864,7 +866,7 @@ tftpd_cleanup:
 
   if(got_exit_signal) {
     logmsg("========> %s tftpd (port: %d pid: %ld) exits with signal (%d)",
-           ipv_inuse, (int)port, (long)getpid(), exit_signal);
+           ipv_inuse, (int)port, pid, exit_signal);
     /*
      * To properly set the return status of the process we
      * must raise the same signal SIGINT or SIGTERM that we
@@ -884,7 +886,7 @@ static int do_tftp(struct testcase *test, struct tftphdr *tp, ssize_t size)
 {
   char *cp;
   int first = 1, ecode;
-  const struct formats *pf;
+  struct formats *pf;
   char *filename, *mode = NULL;
 #ifdef USE_WINSOCK
   DWORD recvtimeout, recvtimeoutbak;
@@ -902,7 +904,7 @@ static int do_tftp(struct testcase *test, struct tftphdr *tp, ssize_t size)
   }
 
   /* store input protocol */
-  fprintf(server, "opcode = %x\n", tp->th_opcode);
+  fprintf(server, "opcode: %x\n", tp->th_opcode);
 
   cp = (char *)&tp->th_stuff;
   filename = cp;
@@ -930,7 +932,7 @@ static int do_tftp(struct testcase *test, struct tftphdr *tp, ssize_t size)
       }
       if(toggle)
         /* name/value pair: */
-        fprintf(server, "%s = %s\n", option, cp);
+        fprintf(server, "%s: %s\n", option, cp);
       else {
         /* store the name pointer */
         option = cp;
@@ -949,7 +951,7 @@ static int do_tftp(struct testcase *test, struct tftphdr *tp, ssize_t size)
   }
 
   /* store input protocol */
-  fprintf(server, "filename = %s\n", filename);
+  fprintf(server, "filename: %s\n", filename);
 
   for(cp = mode; cp && *cp; cp++)
     if(ISUPPER(*cp))
@@ -1068,8 +1070,8 @@ static int validate_access(struct testcase *test,
 
   if(!strncmp("verifiedserver", filename, 14)) {
     char weare[128];
-    size_t count = msnprintf(weare, sizeof(weare), "WE ROOLZ: %"
-                             CURL_FORMAT_CURL_OFF_T "\r\n", our_getpid());
+    size_t count = msnprintf(weare, sizeof(weare),
+                             "WE ROOLZ: %ld\r\n", (long)getpid());
 
     logmsg("Are-we-friendly question received");
     test->buffer = strdup(weare);
@@ -1151,7 +1153,7 @@ static int validate_access(struct testcase *test,
 /*
  * Send the requested file.
  */
-static void sendtftp(struct testcase *test, const struct formats *pf)
+static void sendtftp(struct testcase *test, struct formats *pf)
 {
   int size;
   ssize_t n;
@@ -1232,7 +1234,7 @@ static void sendtftp(struct testcase *test, const struct formats *pf)
 /*
  * Receive a file.
  */
-static void recvtftp(struct testcase *test, const struct formats *pf)
+static void recvtftp(struct testcase *test, struct formats *pf)
 {
   ssize_t n, size;
   /* These are volatile to live through a siglongjmp */
@@ -1302,11 +1304,6 @@ send_ack:
     }
   } while(size == SEGSIZE);
   write_behind(test, pf->f_convert);
-  /* close the output file as early as possible after upload completion */
-  if(test->ofile > 0) {
-    close(test->ofile);
-    test->ofile = 0;
-  }
 
   rap->th_opcode = htons((unsigned short)opcode_ACK);  /* send the "final"
                                                           ack */
@@ -1329,11 +1326,6 @@ send_ack:
     (void) swrite(peer, &ackbuf.storage[0], 4);  /* resend final ack */
   }
 abort:
-  /* make sure the output file is closed in case of abort */
-  if(test->ofile > 0) {
-    close(test->ofile);
-    test->ofile = 0;
-  }
   return;
 }
 
