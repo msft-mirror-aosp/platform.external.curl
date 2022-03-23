@@ -5,11 +5,11 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
- * are also available at https://curl.se/docs/copyright.html.
+ * are also available at https://curl.haxx.se/docs/copyright.html.
  *
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
  * copies of the Software, and permit persons to whom the Software is
@@ -43,8 +43,6 @@ struct getout *new_getout(struct OperationConfig *config)
   struct getout *node = calloc(1, sizeof(struct getout));
   struct getout *last = config->url_last;
   if(node) {
-    static int outnum = 0;
-
     /* append this new node last in the list */
     if(last)
       last->next = node;
@@ -55,7 +53,6 @@ struct getout *new_getout(struct OperationConfig *config)
     config->url_last = node;
 
     node->flags = config->default_node_flags;
-    node->num = outnum++;
   }
   return node;
 }
@@ -132,13 +129,14 @@ void cleanarg(char *str)
  * getparameter a lot, we must check it for NULL before accessing the str
  * data.
  */
-static ParameterError getnum(long *val, const char *str, int base)
+
+ParameterError str2num(long *val, const char *str)
 {
   if(str) {
     char *endptr = NULL;
     long num;
     errno = 0;
-    num = strtol(str, &endptr, base);
+    num = strtol(str, &endptr, 10);
     if(errno == ERANGE)
       return PARAM_NUMBER_TOO_LARGE;
     if((endptr != str) && (endptr == str + strlen(str))) {
@@ -147,24 +145,6 @@ static ParameterError getnum(long *val, const char *str, int base)
     }
   }
   return PARAM_BAD_NUMERIC; /* badness */
-}
-
-ParameterError str2num(long *val, const char *str)
-{
-  return getnum(val, str, 10);
-}
-
-ParameterError oct2nummax(long *val, const char *str, long max)
-{
-  ParameterError result = getnum(val, str, 8);
-  if(result != PARAM_OK)
-    return result;
-  else if(*val > max)
-    return PARAM_NUMBER_TOO_LARGE;
-  else if(*val < 0)
-    return PARAM_NEGATIVE_NUMERIC;
-
-  return PARAM_OK;
 }
 
 /*
@@ -178,7 +158,7 @@ ParameterError oct2nummax(long *val, const char *str, long max)
 
 ParameterError str2unum(long *val, const char *str)
 {
-  ParameterError result = getnum(val, str, 10);
+  ParameterError result = str2num(val, str);
   if(result != PARAM_OK)
     return result;
   if(*val < 0)

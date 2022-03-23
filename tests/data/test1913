@@ -24,11 +24,11 @@ ftp
 FTP with NOBODY set, getting a missing file
 </name>
 <tool>
-lib%TESTNUMBER
+lib1913
 </tool>
 
 <command>
-ftp://%HOSTIP:%FTPPORT/not-there/%TESTNUMBER
+ftp://%HOSTIP:%FTPPORT/not-there/1913
 </command>
 </client>
 
