@@ -12,7 +12,7 @@ multi
 <reply>
 <data>
 HTTP/1.1 200 OK
-Date: Tue, 09 Nov 2010 14:49:00 GMT
+Date: Thu, 09 Nov 2010 14:49:00 GMT
 Server: test-server/fake
 Content-Length: 7
 
@@ -30,13 +30,13 @@ SSL
 https
 </server>
 <tool>
-lib%TESTNUMBER
+lib560
 </tool>
  <name>
 simple HTTPS GET with multi interface
  </name>
  <command>
-https://%HOSTIP:%HTTPSPORT/%TESTNUMBER
+https://%HOSTIP:%HTTPSPORT/560
 </command>
 </client>
 
@@ -44,7 +44,7 @@ https://%HOSTIP:%HTTPSPORT/%TESTNUMBER
 # Verify data after the test has been "shot"
 <verify>
 <protocol>
-GET /%TESTNUMBER HTTP/1.1
+GET /560 HTTP/1.1
 Host: %HOSTIP:%HTTPSPORT
 Accept: */*
 
