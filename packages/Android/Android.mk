@@ -107,6 +107,9 @@ ALL_PREBUILT += $(LOCAL_PATH)/NOTICE
 $(LOCAL_PATH)/NOTICE: $(LOCAL_PATH)/COPYING | $(ACP)
 	$(copy-file-to-target)
 
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-MIT
+LOCAL_LICENSE_CONDITIONS := notice
+LOCAL_NOTICE_FILE := $(LOCAL_PATH)/../../COPYING
 include $(BUILD_STATIC_LIBRARY)
 
 
@@ -128,4 +131,7 @@ LOCAL_C_INCLUDES += $(LOCAL_PATH)/include $(LOCAL_PATH)/lib
 # if libcurl is changed to be built as a dynamic library
 LOCAL_CFLAGS += $(common_CFLAGS)
 
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-MIT
+LOCAL_LICENSE_CONDITIONS := notice
+LOCAL_NOTICE_FILE := $(LOCAL_PATH)/../../COPYING
 include $(BUILD_EXECUTABLE)
