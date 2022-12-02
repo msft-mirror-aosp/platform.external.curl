@@ -95,6 +95,7 @@ if test "x$OPT_WOLFSSL" != xno; then
    They are set up properly later if it is detected.  */
 #undef SIZEOF_LONG
 #undef SIZEOF_LONG_LONG
+#include <wolfssl/options.h>
 #include <wolfssl/ssl.h>
 	]],[[
 	  return wolfSSL_Init();
@@ -122,7 +123,7 @@ if test "x$OPT_WOLFSSL" != xno; then
       check_for_ca_bundle=1
 
       dnl wolfssl/ctaocrypt/types.h needs SIZEOF_LONG_LONG defined!
-      AX_COMPILE_CHECK_SIZEOF(long long)
+      CURL_SIZEOF(long long)
 
       LIBS="$addlib -lm $LIBS"
 
@@ -153,7 +154,8 @@ if test "x$OPT_WOLFSSL" != xno; then
           AC_MSG_NOTICE([Added $wolfssllibpath to CURL_LIBRARY_PATH])
         fi
       fi
-
+    else
+        AC_MSG_ERROR([--with-wolfssl but wolfSSL was not found or doesn't work])
     fi
 
   fi dnl wolfSSL not disabled

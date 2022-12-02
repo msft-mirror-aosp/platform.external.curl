@@ -8,6 +8,7 @@ See-also: proxy-insecure cacert capath
 Category: tls sftp scp
 Example: --insecure $URL
 Added: 7.10
+Multi: boolean
 ---
 By default, every secure connection curl makes is verified to be secure before
 the transfer takes place. This option makes curl skip the verification step
@@ -22,6 +23,6 @@ See this online resource for further details:
 
 For SFTP and SCP, this option makes curl skip the *known_hosts* verification.
 *known_hosts* is a file normally stored in the user's home directory in the
-\&.ssh subdirectory, which contains host names and their public keys.
+".ssh" subdirectory, which contains host names and their public keys.
 
 **WARNING**: using this option makes the transfer insecure.

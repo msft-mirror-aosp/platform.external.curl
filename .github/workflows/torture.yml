@@ -5,8 +5,6 @@
 name: Linux
 
 on:
-  # Trigger the workflow on push or pull requests, but only for the
-  # master branch
   push:
     branches:
     - master
@@ -15,18 +13,28 @@ on:
     branches:
     - master
 
+concurrency:
+  # Hardcoded workflow filename as workflow name above is just Linux again
+  group: torture-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
 jobs:
   autotools:
     name: ${{ matrix.build.name }}
     runs-on: 'ubuntu-latest'
-    timeout-minutes: 60
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
         build:
-        - name: rustls
-          install: libpsl-dev libbrotli-dev libzstd-dev
-          configure: --with-rustls=$HOME/rustls --enable-debug
+        - name: torture
+          install: libpsl-dev libbrotli-dev libzstd-dev zlib1g-dev libnghttp2-dev libssh2-1-dev libc-ares-dev
+          configure: --with-openssl --enable-debug --enable-ares
+          tflags: -n -t --shallow=25 !FTP
+        - name: torture-ftp
+          install: libpsl-dev libbrotli-dev libzstd-dev zlib1g-dev libnghttp2-dev libssh2-1-dev libc-ares-dev
+          configure: --with-openssl --enable-debug --enable-ares
+          tflags: -n -t --shallow=20 FTP
 
     steps:
     - run: |
@@ -34,15 +42,6 @@ jobs:
         sudo apt-get install libtool autoconf automake pkg-config stunnel4 ${{ matrix.build.install }}
         sudo python3 -m pip install impacket
       name: 'install prereqs and impacket'
-
-    - run: |
-        git clone --depth=1 --recursive https://github.com/rustls/rustls-ffi.git -b v0.8.2
-        curl https://sh.rustup.rs -sSf | sh -s -- -y
-        source $HOME/.cargo/env
-        cd rustls-ffi
-        make
-        make DESTDIR=$HOME/rustls install
-      name: 'install rustls'
 
     - uses: actions/checkout@v3
 
@@ -55,10 +54,10 @@ jobs:
     - run: make V=1
       name: 'make'
 
-    - run: make V=1 examples
-      name: 'make examples'
+    - run: make V=1 -C tests
+      name: 'make tests'
 
-    - run: make V=1 test-ci
-      name: 'test'
+    - run: make V=1 test-torture
+      name: 'run tests'
       env:
         TFLAGS: "${{ matrix.build.tflags }}"
