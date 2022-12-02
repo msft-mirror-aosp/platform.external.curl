@@ -7,7 +7,9 @@ Help: Fail fast with no output on HTTP errors
 See-also: fail-with-body
 Category: important http
 Example: --fail $URL
+Mutexed: fail-with-body
 Added: 4.0
+Multi: boolean
 ---
 Fail fast with no output at all on server errors. This is useful to enable
 scripts and users to better deal with failed attempts. In normal cases when an
