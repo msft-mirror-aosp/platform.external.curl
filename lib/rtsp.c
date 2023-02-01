@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -17,6 +17,8 @@
  *
  * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
  * KIND, either express or implied.
+ *
+ * SPDX-License-Identifier: curl
  *
  ***************************************************************************/
 
@@ -139,7 +141,7 @@ static CURLcode rtsp_setup_connection(struct Curl_easy *data,
  * Instead, if it is readable, run Curl_connalive() to peek at the socket
  * and distinguish between closed and data.
  */
-static bool rtsp_connisdead(struct connectdata *check)
+static bool rtsp_connisdead(struct Curl_easy *data, struct connectdata *check)
 {
   int sval;
   bool ret_val = TRUE;
@@ -155,7 +157,7 @@ static bool rtsp_connisdead(struct connectdata *check)
   }
   else if(sval & CURL_CSELECT_IN) {
     /* readable with no error. could still be closed */
-    ret_val = !Curl_connalive(check);
+    ret_val = !Curl_connalive(data, check);
   }
 
   return ret_val;
@@ -172,7 +174,7 @@ static unsigned int rtsp_conncheck(struct Curl_easy *data,
   (void)data;
 
   if(checks_to_perform & CONNCHECK_ISDEAD) {
-    if(rtsp_connisdead(conn))
+    if(rtsp_connisdead(data, conn))
       ret_val |= CONNRESULT_DEAD;
   }
 
@@ -219,7 +221,7 @@ static CURLcode rtsp_done(struct Curl_easy *data,
 
   httpStatus = Curl_http_done(data, status, premature);
 
-  if(rtsp) {
+  if(rtsp && !status && !httpStatus) {
     /* Check the sequence numbers */
     long CSeq_sent = rtsp->CSeq_sent;
     long CSeq_recv = rtsp->CSeq_recv;
@@ -265,11 +267,23 @@ static CURLcode rtsp_do(struct Curl_easy *data, bool *done)
   rtsp->CSeq_sent = data->state.rtsp_next_client_CSeq;
   rtsp->CSeq_recv = 0;
 
+  /* Setup the first_* fields to allow auth details get sent
+     to this origin */
+
+  if(!data->state.first_host) {
+    data->state.first_host = strdup(conn->host.name);
+    if(!data->state.first_host)
+      return CURLE_OUT_OF_MEMORY;
+
+    data->state.first_remote_port = conn->remote_port;
+    data->state.first_remote_protocol = conn->handler->protocol;
+  }
+
   /* Setup the 'p_request' pointer to the proper p_request string
    * Since all RTSP requests are included here, there is no need to
    * support custom requests like HTTP.
    **/
-  data->set.opt_no_body = TRUE; /* most requests don't contain a body */
+  data->req.no_body = TRUE; /* most requests don't contain a body */
   switch(rtspreq) {
   default:
     failf(data, "Got invalid RTSP request");
@@ -279,7 +293,7 @@ static CURLcode rtsp_do(struct Curl_easy *data, bool *done)
     break;
   case RTSPREQ_DESCRIBE:
     p_request = "DESCRIBE";
-    data->set.opt_no_body = FALSE;
+    data->req.no_body = FALSE;
     break;
   case RTSPREQ_ANNOUNCE:
     p_request = "ANNOUNCE";
@@ -299,7 +313,7 @@ static CURLcode rtsp_do(struct Curl_easy *data, bool *done)
   case RTSPREQ_GET_PARAMETER:
     /* GET_PARAMETER's no_body status is determined later */
     p_request = "GET_PARAMETER";
-    data->set.opt_no_body = FALSE;
+    data->req.no_body = FALSE;
     break;
   case RTSPREQ_SET_PARAMETER:
     p_request = "SET_PARAMETER";
@@ -309,8 +323,8 @@ static CURLcode rtsp_do(struct Curl_easy *data, bool *done)
     break;
   case RTSPREQ_RECEIVE:
     p_request = "";
-    /* Treat interleaved RTP as body*/
-    data->set.opt_no_body = FALSE;
+    /* Treat interleaved RTP as body */
+    data->req.no_body = FALSE;
     break;
   case RTSPREQ_LAST:
     failf(data, "Got invalid RTSP request: RTSPREQ_LAST");
@@ -340,7 +354,7 @@ static CURLcode rtsp_do(struct Curl_easy *data, bool *done)
   }
 
   /* Transport Header for SETUP requests */
-  p_transport = Curl_checkheaders(data, "Transport");
+  p_transport = Curl_checkheaders(data, STRCONST("Transport"));
   if(rtspreq == RTSPREQ_SETUP && !p_transport) {
     /* New Transport: setting? */
     if(data->set.str[STRING_RTSP_TRANSPORT]) {
@@ -364,11 +378,11 @@ static CURLcode rtsp_do(struct Curl_easy *data, bool *done)
   /* Accept Headers for DESCRIBE requests */
   if(rtspreq == RTSPREQ_DESCRIBE) {
     /* Accept Header */
-    p_accept = Curl_checkheaders(data, "Accept")?
+    p_accept = Curl_checkheaders(data, STRCONST("Accept"))?
       NULL:"Accept: application/sdp\r\n";
 
     /* Accept-Encoding header */
-    if(!Curl_checkheaders(data, "Accept-Encoding") &&
+    if(!Curl_checkheaders(data, STRCONST("Accept-Encoding")) &&
        data->set.str[STRING_ENCODING]) {
       Curl_safefree(data->state.aptr.accept_encoding);
       data->state.aptr.accept_encoding =
@@ -385,11 +399,12 @@ static CURLcode rtsp_do(struct Curl_easy *data, bool *done)
      it might have been used in the proxy connect, but if we have got a header
      with the user-agent string specified, we erase the previously made string
      here. */
-  if(Curl_checkheaders(data, "User-Agent") && data->state.aptr.uagent) {
+  if(Curl_checkheaders(data, STRCONST("User-Agent")) &&
+     data->state.aptr.uagent) {
     Curl_safefree(data->state.aptr.uagent);
     data->state.aptr.uagent = NULL;
   }
-  else if(!Curl_checkheaders(data, "User-Agent") &&
+  else if(!Curl_checkheaders(data, STRCONST("User-Agent")) &&
           data->set.str[STRING_USERAGENT]) {
     p_uagent = data->state.aptr.uagent;
   }
@@ -405,7 +420,7 @@ static CURLcode rtsp_do(struct Curl_easy *data, bool *done)
 
   /* Referrer */
   Curl_safefree(data->state.aptr.ref);
-  if(data->state.referer && !Curl_checkheaders(data, "Referer"))
+  if(data->state.referer && !Curl_checkheaders(data, STRCONST("Referer")))
     data->state.aptr.ref = aprintf("Referer: %s\r\n", data->state.referer);
   else
     data->state.aptr.ref = NULL;
@@ -422,7 +437,7 @@ static CURLcode rtsp_do(struct Curl_easy *data, bool *done)
      (rtspreq  & (RTSPREQ_PLAY | RTSPREQ_PAUSE | RTSPREQ_RECORD))) {
 
     /* Check to see if there is a range set in the custom headers */
-    if(!Curl_checkheaders(data, "Range") && data->state.range) {
+    if(!Curl_checkheaders(data, STRCONST("Range")) && data->state.range) {
       Curl_safefree(data->state.aptr.rangeline);
       data->state.aptr.rangeline = aprintf("Range: %s\r\n", data->state.range);
       p_range = data->state.aptr.rangeline;
@@ -432,11 +447,11 @@ static CURLcode rtsp_do(struct Curl_easy *data, bool *done)
   /*
    * Sanity check the custom headers
    */
-  if(Curl_checkheaders(data, "CSeq")) {
+  if(Curl_checkheaders(data, STRCONST("CSeq"))) {
     failf(data, "CSeq cannot be set as a custom header.");
     return CURLE_RTSP_CSEQ_ERROR;
   }
-  if(Curl_checkheaders(data, "Session")) {
+  if(Curl_checkheaders(data, STRCONST("Session"))) {
     failf(data, "Session ID cannot be set as a custom header.");
     return CURLE_BAD_FUNCTION_ARGUMENT;
   }
@@ -523,7 +538,7 @@ static CURLcode rtsp_do(struct Curl_easy *data, bool *done)
     if(putsize > 0 || postsize > 0) {
       /* As stated in the http comments, it is probably not wise to
        * actually set a custom Content-Length in the headers */
-      if(!Curl_checkheaders(data, "Content-Length")) {
+      if(!Curl_checkheaders(data, STRCONST("Content-Length"))) {
         result =
           Curl_dyn_addf(&req_buffer,
                         "Content-Length: %" CURL_FORMAT_CURL_OFF_T"\r\n",
@@ -534,18 +549,20 @@ static CURLcode rtsp_do(struct Curl_easy *data, bool *done)
 
       if(rtspreq == RTSPREQ_SET_PARAMETER ||
          rtspreq == RTSPREQ_GET_PARAMETER) {
-        if(!Curl_checkheaders(data, "Content-Type")) {
-          result = Curl_dyn_addf(&req_buffer,
-                                 "Content-Type: text/parameters\r\n");
+        if(!Curl_checkheaders(data, STRCONST("Content-Type"))) {
+          result = Curl_dyn_addn(&req_buffer,
+                                 STRCONST("Content-Type: "
+                                          "text/parameters\r\n"));
           if(result)
             return result;
         }
       }
 
       if(rtspreq == RTSPREQ_ANNOUNCE) {
-        if(!Curl_checkheaders(data, "Content-Type")) {
-          result = Curl_dyn_addf(&req_buffer,
-                                 "Content-Type: application/sdp\r\n");
+        if(!Curl_checkheaders(data, STRCONST("Content-Type"))) {
+          result = Curl_dyn_addn(&req_buffer,
+                                 STRCONST("Content-Type: "
+                                          "application/sdp\r\n"));
           if(result)
             return result;
         }
@@ -556,14 +573,14 @@ static CURLcode rtsp_do(struct Curl_easy *data, bool *done)
     else if(rtspreq == RTSPREQ_GET_PARAMETER) {
       /* Check for an empty GET_PARAMETER (heartbeat) request */
       data->state.httpreq = HTTPREQ_HEAD;
-      data->set.opt_no_body = TRUE;
+      data->req.no_body = TRUE;
     }
   }
 
   /* RTSP never allows chunked transfer */
   data->req.forbidchunk = TRUE;
   /* Finish the request buffer */
-  result = Curl_dyn_add(&req_buffer, "\r\n");
+  result = Curl_dyn_addn(&req_buffer, STRCONST("\r\n"));
   if(result)
     return result;
 
@@ -645,7 +662,7 @@ static CURLcode rtsp_rtp_readwrite(struct Curl_easy *data,
       rtp_length = RTP_PKT_LENGTH(rtp);
 
       if(rtp_dataleft < rtp_length + 4) {
-        /* Need more - incomplete payload*/
+        /* Need more - incomplete payload */
         *readmore = TRUE;
         break;
       }
@@ -789,7 +806,7 @@ CURLcode Curl_rtsp_parseheader(struct Curl_easy *data, char *header)
 
     /* Find the first non-space letter */
     start = header + 8;
-    while(*start && ISSPACE(*start))
+    while(*start && ISBLANK(*start))
       start++;
 
     if(!*start) {

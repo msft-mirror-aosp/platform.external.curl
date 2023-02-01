@@ -6,7 +6,7 @@
 #                            | (__| |_| |  _ <| |___
 #                             \___|\___/|_| \_\_____|
 #
-# Copyright (C) 1998 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
+# Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
 #
 # This software is licensed as described in the file COPYING, which
 # you should have received as part of this distribution. The terms
@@ -18,6 +18,8 @@
 #
 # This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
 # KIND, either express or implied.
+#
+# SPDX-License-Identifier: curl
 #
 ###########################################################################
 
@@ -76,6 +78,7 @@ sub manpageify {
 
 sub printdesc {
     my @desc = @_;
+    my $exam = 0;
     for my $d (@desc) {
         if($d =~ /\(Added in ([0-9.]+)\)/i) {
             my $ver = $1;
@@ -89,19 +92,40 @@ sub printdesc {
             # *italics*
             $d =~ s/\*([^ ]*)\*/\\fI$1\\fP/g;
         }
+        if(!$exam && ($d =~ /^ /)) {
+            # start of example
+            $exam = 1;
+            print ".nf\n"; # no-fill
+        }
+        elsif($exam && ($d !~ /^ /)) {
+            # end of example
+            $exam = 0;
+            print ".fi\n"; # fill-in
+        }
         # skip lines starting with space (examples)
-        if($d =~ /^[^ ]/) {
-            for my $k (keys %optlong) {
+        if($d =~ /^[^ ]/ && $d =~ /--/) {
+            # scan for options in longest-names first order
+            for my $k (sort {length($b) <=> length($a)} keys %optlong) {
+                # --tlsv1 is complicated since --tlsv1.2 etc are also
+                # acceptable options!
+                if(($k eq "tlsv1") && ($d =~ /--tlsv1\.[0-9]\\f/)) {
+                    next;
+                }
                 my $l = manpageify($k);
-                $d =~ s/--$k([^a-z0-9_-])/$l$1/;
+                $d =~ s/\-\-$k([^a-z0-9-])/$l$1/g;
             }
         }
         # quote "bare" minuses in the output
         $d =~ s/( |\\fI|^)--/$1\\-\\-/g;
         $d =~ s/([ -]|\\fI|^)-/$1\\-/g;
         # handle single quotes first on the line
-        $d =~ s/(\s*)\'/$1\\(aq/;
+        $d =~ s/^(\s*)\'/$1\\(aq/;
+        # handle double quotes first on the line
+        $d =~ s/^(\s*)\"/$1\\(dq/;
         print $d;
+    }
+    if($exam) {
+        print ".fi\n"; # fill-in
     }
 }
 
@@ -181,9 +205,13 @@ sub single {
     my $requires;
     my $category;
     my $seealso;
+    my $copyright;
+    my $spdx;
     my @examples; # there can be more than one
     my $magic; # cmdline special option
     my $line;
+    my $multi;
+    my $experimental;
     while(<F>) {
         $line++;
         if(/^Short: *(.)/i) {
@@ -222,25 +250,53 @@ sub single {
         elsif(/^Example: *(.*)/i) {
             push @examples, $1;
         }
+        elsif(/^Multi: *(.*)/i) {
+            $multi=$1;
+        }
+        elsif(/^Experimental: yes/i) {
+            $experimental=1;
+        }
+        elsif(/^C: (.*)/i) {
+            $copyright=$1;
+        }
+        elsif(/^SPDX-License-Identifier: (.*)/i) {
+            $spdx=$1;
+        }
         elsif(/^Help: *(.*)/i) {
             ;
         }
         elsif(/^---/) {
             if(!$long) {
                 print STDERR "ERROR: no 'Long:' in $f\n";
-                exit 1;
+                return 1;
+            }
+            if($multi !~ /(single|append|boolean|mutex)/) {
+                print STDERR "ERROR: bad 'Multi:' in $f\n";
+                return 1;
             }
             if(!$category) {
                 print STDERR "ERROR: no 'Category:' in $f\n";
-                exit 2;
+                return 2;
             }
             if(!$examples[0]) {
                 print STDERR "$f:$line:1:ERROR: no 'Example:' present\n";
-                exit 2;
+                return 2;
             }
             if(!$added) {
                 print STDERR "$f:$line:1:ERROR: no 'Added:' version present\n";
-                exit 2;
+                return 2;
+            }
+            if(!$seealso) {
+                print STDERR "$f:$line:1:ERROR: no 'See-also:' field present\n";
+                return 2;
+            }
+            if(!$copyright) {
+                print STDERR "$f:$line:1:ERROR: no 'C:' field present\n";
+                return 2;
+            }
+            if(!$spdx) {
+                print STDERR "$f:$line:1:ERROR: no 'SPDX-License-Identifier:' field present\n";
+                return 2;
             }
             last;
         }
@@ -288,8 +344,39 @@ sub single {
         print ".SH DESCRIPTION\n";
     }
 
+    if($experimental) {
+        print "**WARNING**: this option is experimental. Do not use in production.\n\n";
+    }
+
     printdesc(@desc);
     undef @desc;
+
+    my @extra;
+    if($multi eq "single") {
+        push @extra, "\nIf --$long is provided several times, the last set ".
+            "value will be used.\n";
+    }
+    elsif($multi eq "append") {
+        push @extra, "\n--$long can be used several times in a command line\n";
+    }
+    elsif($multi eq "boolean") {
+        my $rev = "no-$long";
+        # for options that start with "no-" the reverse is then without
+        # the no- prefix
+        if($long =~ /^no-/) {
+            $rev = $long;
+            $rev =~ s/^no-//;
+        }
+        push @extra,
+            "\nProviding --$long multiple times has no extra effect.\n".
+            "Disable it again with --$rev.\n";
+    }
+    elsif($multi eq "mutex") {
+        push @extra,
+            "\nProviding --$long multiple times has no extra effect.\n";
+    }
+
+    printdesc(@extra);
 
     my @foot;
     if($seealso) {
@@ -304,7 +391,7 @@ sub single {
         my $i = 0;
         for my $k (@m) {
             if(!$helplong{$k}) {
-                print STDERR "WARN: $f see-alsos a non-existing option: $k\n";
+                print STDERR "$f:$line:1:WARN: see-also a non-existing option: $k\n";
             }
             my $l = manpageify($k);
             my $sep = " and";
@@ -331,7 +418,8 @@ sub single {
             my $l = manpageify($k);
             $mstr .= sprintf "%s$l", $mstr?" and ":"";
         }
-        push @foot, overrides($standalone, "This option overrides $mstr. ");
+        push @foot, overrides($standalone,
+                              "This option is mutually exclusive to $mstr. ");
     }
     if($examples[0]) {
         my $s ="";
@@ -442,6 +530,8 @@ sub listhelp {
  * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
  * KIND, either express or implied.
  *
+ * SPDX-License-Identifier: curl
+ *
  ***************************************************************************/
 #include "tool_setup.h"
 #include "tool_help.h"
@@ -461,7 +551,7 @@ HEAD
         my $long = $f;
         my $short = $optlong{$long};
         my @categories = split ' ', $catlong{$long};
-        my $bitmask;
+        my $bitmask = ' ';
         my $opt;
 
         if(defined($short) && $long) {
@@ -477,6 +567,7 @@ HEAD
                 $bitmask .= ' | ';
             }
         }
+        $bitmask =~ s/(?=.{76}).{1,76}\|/$&\n  /g;
         my $arg = $arglong{$long};
         if($arg) {
             $opt .= " $arg";
@@ -484,7 +575,7 @@ HEAD
         my $desc = $helplong{$f};
         $desc =~ s/\"/\\\"/g; # escape double quotes
 
-        my $line = sprintf "  {\"%s\",\n   \"%s\",\n   %s},\n", $opt, $desc, $bitmask;
+        my $line = sprintf "  {\"%s\",\n   \"%s\",\n  %s},\n", $opt, $desc, $bitmask;
 
         if(length($opt) > 78) {
             print STDERR "WARN: the --$long name is too long\n";
@@ -522,17 +613,17 @@ sub listcats {
 
 sub mainpage {
     my (@files) = @_;
+    my $ret;
     # show the page header
     header("page-header");
 
     # output docs for all options
     foreach my $f (sort @files) {
-        if(single($f, 0)) {
-            print STDERR "Can't read $f?\n";
-        }
+        $ret += single($f, 0);
     }
 
     header("page-footer");
+    exit $ret if($ret);
 }
 
 sub showonly {
