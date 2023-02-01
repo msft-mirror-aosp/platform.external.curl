@@ -1,9 +1,13 @@
+c: Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+SPDX-License-Identifier: curl
 Long: version
 Short: V
 Help: Show version number and quit
 Category: important curl
 Example: --version
 Added: 4.0
+See-also: help manual
+Multi: boolean
 ---
 Displays information about curl and the libcurl version it uses.
 
