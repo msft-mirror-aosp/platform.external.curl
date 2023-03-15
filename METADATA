@@ -16,7 +16,7 @@ third_party {
   version: "curl-7_87_0"
   license_type: NOTICE
   security {
-    tag: "NVD-CPE2.3:cpe:/a:haxx:curl:7.78.0"
+    tag: "NVD-CPE2.3:cpe:/a:haxx:curl:7.87.0"
   }
   last_upgrade_date {
     year: 2023
