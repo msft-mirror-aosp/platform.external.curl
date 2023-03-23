@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -38,6 +38,7 @@
 #include "strcase.h"
 #include "select.h"
 #include "connect.h"
+#include "cfilters.h"
 #include "strdup.h"
 /* The last 3 #include files should be in this order */
 #include "curl_printf.h"
@@ -134,36 +135,6 @@ static CURLcode rtsp_setup_connection(struct Curl_easy *data,
 
 
 /*
- * The server may send us RTP data at any point, and RTSPREQ_RECEIVE does not
- * want to block the application forever while receiving a stream. Therefore,
- * we cannot assume that an RTSP socket is dead just because it is readable.
- *
- * Instead, if it is readable, run Curl_connalive() to peek at the socket
- * and distinguish between closed and data.
- */
-static bool rtsp_connisdead(struct Curl_easy *data, struct connectdata *check)
-{
-  int sval;
-  bool ret_val = TRUE;
-
-  sval = SOCKET_READABLE(check->sock[FIRSTSOCKET], 0);
-  if(sval == 0) {
-    /* timeout */
-    ret_val = FALSE;
-  }
-  else if(sval & CURL_CSELECT_ERR) {
-    /* socket is in an error state */
-    ret_val = TRUE;
-  }
-  else if(sval & CURL_CSELECT_IN) {
-    /* readable with no error. could still be closed */
-    ret_val = !Curl_connalive(data, check);
-  }
-
-  return ret_val;
-}
-
-/*
  * Function to check on various aspects of a connection.
  */
 static unsigned int rtsp_conncheck(struct Curl_easy *data,
@@ -174,7 +145,8 @@ static unsigned int rtsp_conncheck(struct Curl_easy *data,
   (void)data;
 
   if(checks_to_perform & CONNCHECK_ISDEAD) {
-    if(rtsp_connisdead(data, conn))
+    bool input_pending;
+    if(!Curl_conn_is_alive(data, conn, &input_pending))
       ret_val |= CONNRESULT_DEAD;
   }
 
@@ -592,7 +564,7 @@ static CURLcode rtsp_do(struct Curl_easy *data, bool *done)
   }
 
   /* issue the request */
-  result = Curl_buffer_send(&req_buffer, data,
+  result = Curl_buffer_send(&req_buffer, data, data->req.p.http,
                             &data->info.request_size, 0, FIRSTSOCKET);
   if(result) {
     failf(data, "Failed sending RTSP request");
@@ -784,12 +756,14 @@ CURLcode rtp_client_write(struct Curl_easy *data, char *ptr, size_t len)
 
 CURLcode Curl_rtsp_parseheader(struct Curl_easy *data, char *header)
 {
-  long CSeq = 0;
-
   if(checkprefix("CSeq:", header)) {
-    /* Store the received CSeq. Match is verified in rtsp_done */
-    int nc = sscanf(&header[4], ": %ld", &CSeq);
-    if(nc == 1) {
+    long CSeq = 0;
+    char *endp;
+    char *p = &header[5];
+    while(ISBLANK(*p))
+      p++;
+    CSeq = strtol(p, &endp, 10);
+    if(p != endp) {
       struct RTSP *rtsp = data->req.p.rtsp;
       rtsp->CSeq_recv = CSeq; /* mark the request */
       data->state.rtsp_CSeq_recv = CSeq; /* update the handle */
