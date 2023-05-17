@@ -142,6 +142,16 @@
 /* Define to 1 if you have the alarm function. */
 #define HAVE_ALARM 1
 
+/* Define to 1 if you have the `arc4random' function. */
+#if defined(__APPLE__) || defined(__BIONIC__)
+#define HAVE_ARC4RANDOM 1
+#endif
+
+/* Define to 1 if you have the `arc4random_buf' function. */
+#if defined(__APPLE__) || defined(__BIONIC__)
+#define HAVE_ARC4RANDOM_BUF 1
+#endif
+
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #define HAVE_ARPA_INET_H 1
 
@@ -796,6 +806,9 @@
 
 /* Size of curl_off_t in number of bytes */
 #define SIZEOF_CURL_OFF_T 8
+
+/* Size of curl_socket_t in number of bytes */
+/* #undef SIZEOF_CURL_SOCKET_T 4 */
 
 /* Size of int in number of bytes */
 #define SIZEOF_INT 4
