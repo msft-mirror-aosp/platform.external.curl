@@ -11,10 +11,12 @@ on:
     - '*/ci'
     paths-ignore:
     - '**/*.md'
+    - '**/CMakeLists.txt'
     - '.azure-pipelines.yml'
     - '.circleci/**'
     - '.cirrus.yml'
     - 'appveyor.yml'
+    - 'CMake/**'
     - 'packages/**'
     - 'plan9/**'
     - 'projects/**'
@@ -24,10 +26,12 @@ on:
     - master
     paths-ignore:
     - '**/*.md'
+    - '**/CMakeLists.txt'
     - '.azure-pipelines.yml'
     - '.circleci/**'
     - '.cirrus.yml'
     - 'appveyor.yml'
+    - 'CMake/**'
     - 'packages/**'
     - 'plan9/**'
     - 'projects/**'
@@ -37,6 +41,8 @@ concurrency:
   # Hardcoded workflow filename as workflow name above is just Linux again
   group: ngtcp2-openssl-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
+
+permissions: {}
 
 jobs:
   autotools:
@@ -62,18 +68,17 @@ jobs:
         sudo apt-get update
         sudo apt-get install libtool autoconf automake pkg-config stunnel4 ${{ matrix.build.install }}
         sudo apt-get install apache2 apache2-dev
-        sudo python3 -m pip install impacket pytest cryptography multipart
       name: 'install prereqs and impacket, pytest, crypto'
 
     - run: |
-        git clone --depth=1 -b openssl-3.0.8+quic https://github.com/quictls/openssl
+        git clone --quiet --depth=1 -b openssl-3.0.8+quic https://github.com/quictls/openssl
         cd openssl
         ./config --prefix=$HOME/all --libdir=$HOME/all/lib
         make install_sw
       name: 'install quictls'
 
     - run: |
-        git clone --depth=1 -b v0.8.0 https://github.com/ngtcp2/nghttp3
+        git clone --quiet --depth=1 -b v0.11.0 https://github.com/ngtcp2/nghttp3
         cd nghttp3
         autoreconf -fi
         ./configure --prefix=$HOME/all PKG_CONFIG_PATH="$HOME/all/lib/pkgconfig" --enable-lib-only
@@ -81,7 +86,7 @@ jobs:
       name: 'install nghttp3'
 
     - run: |
-        git clone --depth=1 -b v0.13.1 https://github.com/ngtcp2/ngtcp2
+        git clone --quiet --depth=1 -b v0.15.0 https://github.com/ngtcp2/ngtcp2
         cd ngtcp2
         autoreconf -fi
         ./configure ${{ matrix.build.ngtcp2-configure }} --with-openssl
@@ -89,7 +94,7 @@ jobs:
       name: 'install ngtcp2'
 
     - run: |
-        git clone --depth=1 -b v1.52.0 https://github.com/nghttp2/nghttp2
+        git clone --quiet --depth=1 -b v1.53.0 https://github.com/nghttp2/nghttp2
         cd nghttp2
         autoreconf -fi
         ./configure --prefix=$HOME/all PKG_CONFIG_PATH="$HOME/all/lib/pkgconfig" --enable-http3
@@ -97,7 +102,7 @@ jobs:
       name: 'install nghttp2'
 
     - run: |
-        git clone --depth=1 -b master https://github.com/icing/mod_h2
+        git clone --quiet --depth=1 -b master https://github.com/icing/mod_h2
         cd mod_h2
         autoreconf -fi
         ./configure PKG_CONFIG_PATH="$HOME/all/lib/pkgconfig"
@@ -106,6 +111,10 @@ jobs:
       name: 'install mod_h2'
 
     - uses: actions/checkout@v3
+
+    - run: |
+        sudo python3 -m pip install -r tests/requirements.txt -r tests/http/requirements.txt
+      name: 'install python test prereqs'
 
     - run: autoreconf -fi
       name: 'autoreconf'
