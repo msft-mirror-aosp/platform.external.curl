@@ -147,11 +147,6 @@
 #define HAVE_ARC4RANDOM 1
 #endif
 
-/* Define to 1 if you have the `arc4random_buf' function. */
-#if defined(__APPLE__) || defined(__BIONIC__)
-#define HAVE_ARC4RANDOM_BUF 1
-#endif
-
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #define HAVE_ARPA_INET_H 1
 
