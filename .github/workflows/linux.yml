@@ -50,12 +50,12 @@ jobs:
       matrix:
         build:
         - name: quiche
-          install_packages: zlib1g-dev
+          install_packages: zlib1g-dev valgrind
           install_steps: quiche pytest
           configure: LDFLAGS="-Wl,-rpath,/home/runner/work/curl/curl/quiche/target/release" --with-openssl=/home/runner/work/curl/curl/quiche/quiche/deps/boringssl/src --enable-debug --with-quiche=/home/runner/work/curl/curl/quiche/target/release
 
         - name: bearssl
-          install_packages: zlib1g-dev
+          install_packages: zlib1g-dev valgrind
           install_steps: bearssl pytest
           configure: LDFLAGS="-Wl,-rpath,$HOME/bear/lib" --with-bearssl=$HOME/bear --enable-debug
 
@@ -65,7 +65,7 @@ jobs:
           configure: CC=clang LDFLAGS="-Wl,-rpath,$HOME/bear/lib" --with-bearssl=$HOME/bear --enable-debug
 
         - name: libressl
-          install_packages: zlib1g-dev
+          install_packages: zlib1g-dev valgrind
           install_steps: libressl pytest
           configure: LDFLAGS="-Wl,-rpath,$HOME/libressl/lib" --with-openssl=$HOME/libressl --enable-debug
 
@@ -75,7 +75,7 @@ jobs:
           configure: CC=clang LDFLAGS="-Wl,-rpath,$HOME/libressl/lib" --with-openssl=$HOME/libressl --enable-debug
 
         - name: mbedtls
-          install_packages: libnghttp2-dev
+          install_packages: libnghttp2-dev valgrind
           install_steps: mbedtls pytest
           configure: LDFLAGS="-Wl,-rpath,$HOME/mbed/lib" --with-mbedtls=$HOME/mbed --enable-debug
 
@@ -85,17 +85,17 @@ jobs:
           configure: CC=clang LDFLAGS="-Wl,-rpath,$HOME/mbed/lib" --with-mbedtls=$HOME/mbed --enable-debug
 
         - name: msh3
-          install_packages: zlib1g-dev
+          install_packages: zlib1g-dev valgrind
           install_steps: quictls msh3
           configure: LDFLAGS="-Wl,-rpath,$HOME/msh3/lib -Wl,-rpath,$HOME/quictls/lib" --with-msh3=$HOME/msh3 --with-openssl=$HOME/quictls --enable-debug
 
         - name: openssl3
-          install_packages: zlib1g-dev
+          install_packages: zlib1g-dev valgrind
           install_steps: gcc-11 openssl3 pytest
           configure: LDFLAGS="-Wl,-rpath,$HOME/openssl3/lib64" --with-openssl=$HOME/openssl3 --enable-debug --enable-websockets
 
         - name: openssl3-O3
-          install_packages: zlib1g-dev
+          install_packages: zlib1g-dev valgrind
           install_steps: gcc-11 openssl3
           configure: CFLAGS=-O3 LDFLAGS="-Wl,-rpath,$HOME/openssl3/lib64" --with-openssl=$HOME/openssl3 --enable-debug --enable-websockets
 
@@ -104,26 +104,46 @@ jobs:
           install_steps: openssl3
           configure: CC=clang LDFLAGS="-Wl,-rpath,$HOME/openssl3/lib64" --with-openssl=$HOME/openssl3 --enable-debug --enable-websockets
 
+        - name: address-sanitizer
+          install_packages: zlib1g-dev libssh2-1-dev clang libssl-dev libubsan1 libasan8 libtsan2
+          install_steps: pytest
+          configure: >
+            CC=clang
+            CFLAGS="-fsanitize=address,undefined,signed-integer-overflow -fno-sanitize-recover=undefined,integer -Wformat -Werror=format-security -Werror=array-bounds -g"
+            LDFLAGS="-fsanitize=address,undefined -fno-sanitize-recover=undefined,integer"
+            LIBS="-ldl -lubsan"
+            --with-openssl --enable-debug --enable-websockets
+
+        - name: memory-sanitizer
+          install_packages: clang
+          install_steps:
+          configure: >
+            CC=clang
+            CFLAGS="-fsanitize=memory -Wformat -Werror=format-security -Werror=array-bounds -g"
+            LDFLAGS="-fsanitize=memory"
+            LIBS="-ldl"
+            --without-ssl --without-zlib --without-brotli --without-zstd --without-libpsl --without-nghttp2 --enable-debug --enable-websocketsx
+
         - name: event-based
-          install_packages: libssh-dev
+          install_packages: libssh-dev valgrind
           configure: --enable-debug --disable-shared --disable-threaded-resolver --with-libssh --with-openssl
           tflags: -n -e '!TLS-SRP'
 
         - name: hyper
-          install_steps: rust hyper
+          install_steps: rust hyper valgrind
           configure: LDFLAGS="-Wl,-rpath,$HOME/hyper/target/debug" --with-openssl --with-hyper=$HOME/hyper --enable-debug --enable-websockets
 
         - name: rustls
-          install_steps: rust rustls pytest
+          install_steps: rust rustls pytest valgrind
           configure: --with-rustls=$HOME/rustls --enable-debug
 
         - name: Intel compiler - without SSL
-          install_packages: zlib1g-dev
+          install_packages: zlib1g-dev valgrind
           install_steps: intel
           configure: CC=icc --enable-debug --without-ssl
 
         - name: Intel compiler - OpenSSL
-          install_packages: zlib1g-dev libssl-dev
+          install_packages: zlib1g-dev libssl-dev valgrind
           install_steps: intel
           configure: CC=icc --enable-debug --with-openssl
 
@@ -171,7 +191,7 @@ jobs:
 
     - if: ${{ contains(matrix.build.install_steps, 'libressl') }}
       run: |
-        git clone --depth=1 -b v3.6.1 https://github.com/libressl-portable/portable.git libressl-git
+        git clone --quiet --depth=1 -b v3.6.1 https://github.com/libressl-portable/portable.git libressl-git
         cd libressl-git
         ./autogen.sh
         ./configure --prefix=$HOME/libressl
@@ -180,7 +200,7 @@ jobs:
 
     - if: ${{ contains(matrix.build.install_steps, 'quiche') }}
       run: |
-        git clone --depth=1 --recursive https://github.com/cloudflare/quiche.git
+        git clone --quiet --depth=1 --recursive https://github.com/cloudflare/quiche.git
         cd quiche
         #### Work-around https://github.com/curl/curl/issues/7927 #######
         #### See https://github.com/alexcrichton/cmake-rs/issues/131 ####
@@ -201,14 +221,14 @@ jobs:
 
     - if: ${{ contains(matrix.build.install_steps, 'mbedtls') }}
       run: |
-        git clone --depth=1 -b v3.3.0 https://github.com/ARMmbed/mbedtls
+        git clone --quiet --depth=1 -b v3.3.0 https://github.com/ARMmbed/mbedtls
         cd mbedtls
         make DESTDIR=$HOME/mbed install
       name: 'install mbedtls'
 
     - if: ${{ contains(matrix.build.install_steps, 'openssl3') }}
       run: |
-        git clone --depth=1 https://github.com/openssl/openssl
+        git clone --quiet --depth=1 https://github.com/openssl/openssl
         cd openssl
         ./config enable-tls1_3 --prefix=$HOME/openssl3
         make install_sw
@@ -216,7 +236,7 @@ jobs:
 
     - if: ${{ contains(matrix.build.install_steps, 'quictls') }}
       run: |
-        git clone --depth=1 -b OpenSSL_1_1_1t+quic https://github.com/quictls/openssl
+        git clone --quiet --depth=1 -b OpenSSL_1_1_1t+quic https://github.com/quictls/openssl
         cd openssl
         ./config enable-tls1_3 --prefix=$HOME/quictls
         make install_sw
@@ -224,7 +244,7 @@ jobs:
 
     - if: ${{ contains(matrix.build.install_steps, 'msh3') }}
       run: |
-        git clone -b v0.6.0 --depth=1 --recursive https://github.com/nibanks/msh3
+        git clone --quiet -b v0.6.0 --depth=1 --recursive https://github.com/nibanks/msh3
         cd msh3 && mkdir build && cd build
         cmake -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=$HOME/msh3 ..
         cmake --build .
@@ -241,7 +261,7 @@ jobs:
 
     - if: ${{ contains(matrix.build.install_steps, 'rustls') }}
       run: |
-        git clone --depth=1 -b v0.9.2 --recursive https://github.com/rustls/rustls-ffi.git
+        git clone --quiet --depth=1 -b v0.9.2 --recursive https://github.com/rustls/rustls-ffi.git
         cd rustls-ffi
         make DESTDIR=$HOME/rustls install
       name: 'install rustls'
@@ -249,7 +269,7 @@ jobs:
     - if: ${{ contains(matrix.build.install_steps, 'hyper') }}
       run: |
         cd $HOME
-        git clone --depth=1 https://github.com/hyperium/hyper.git
+        git clone --quiet --depth=1 https://github.com/hyperium/hyper.git
         cd $HOME/hyper
         RUSTFLAGS="--cfg hyper_unstable_ffi" cargo +nightly rustc --features client,http1,http2,ffi -Z unstable-options --crate-type cdylib
         echo "LD_LIBRARY_PATH=$HOME/hyper/target/debug:/usr/local/lib" >> $GITHUB_ENV
@@ -268,8 +288,8 @@ jobs:
     - if: ${{ contains(matrix.build.install_steps, 'pytest') }}
       run: |
         sudo apt-get install apache2 apache2-dev libnghttp2-dev
-        sudo python3 -m pip install impacket pytest cryptography multipart
-        git clone --depth=1 -b master https://github.com/icing/mod_h2
+        sudo python3 -m pip install -r tests/http/requirements.txt
+        git clone --quiet --depth=1 -b master https://github.com/icing/mod_h2
         cd mod_h2
         autoreconf -fi
         ./configure PKG_CONFIG_PATH="$HOME/all/lib/pkgconfig"
@@ -285,6 +305,9 @@ jobs:
 
     - run: make V=1
       name: 'make'
+
+    - run: ./src/curl -V
+      name: 'check curl -V output'
 
     - run: make V=1 examples
       name: 'make examples'
