@@ -13,14 +13,14 @@ third_party {
     type: GIT
     value: "https://github.com/curl/curl/"
   }
-  version: "curl-7_87_0"
+  version: "curl-8_0_1"
   license_type: NOTICE
   security {
-    tag: "NVD-CPE2.3:cpe:/a:haxx:curl:7.78.0"
+    tag: "NVD-CPE2.3:cpe:/a:haxx:curl:7.87.0"
   }
   last_upgrade_date {
     year: 2023
-    month: 1
-    day: 3
+    month: 3
+    day: 22
   }
 }
