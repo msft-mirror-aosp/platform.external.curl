@@ -96,6 +96,8 @@ cc_library {
     host_supported: true,
     cflags: [
         "-DBUILDING_LIBCURL",
+        "-Wno-format",
+        "-Wformat-security",
     ],
     srcs:[
         "lib/**/*.c",
@@ -121,6 +123,7 @@ cc_binary {
     defaults: ["curl_common_defaults"],
     srcs: [
         "src/*.c",
+        "lib/base64.c",
         "lib/dynbuf.c",
     ],
     shared_libs: [
