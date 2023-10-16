@@ -22,9 +22,6 @@
 /* to disable cookies support */
 /* #undef CURL_DISABLE_COOKIES */
 
-/* to disable cryptographic authentication */
-/* #undef CURL_DISABLE_CRYPTO_AUTH */
-
 /* to disable DICT */
 #define CURL_DISABLE_DICT 1
 
@@ -33,6 +30,9 @@
 
 /* to disable FILE */
 /* #undef CURL_DISABLE_FILE */
+
+/* disable form API */
+/* #undef CURL_DISABLE_FORM_API */
 
 /* to disable FTP */
 #define CURL_DISABLE_FTP 1
@@ -130,9 +130,6 @@
 /* enable debug build options */
 /* #undef DEBUGBUILD */
 
-/* your Entropy Gathering Daemon socket pathname */
-/* #undef EGD_SOCKET */
-
 /* Define if you want to enable IPv6 support */
 #define ENABLE_IPV6 1
 
@@ -149,9 +146,6 @@
 
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #define HAVE_ARPA_INET_H 1
-
-/* Define to 1 if you have the <arpa/tftp.h> header file. */
-#define HAVE_ARPA_TFTP_H 1
 
 /* Define to 1 if you have _Atomic support. */
 #define HAVE_ATOMIC 1
@@ -177,14 +171,15 @@
 /* Define to 1 if you have the clock_gettime function and monotonic timer. */
 #define HAVE_CLOCK_GETTIME_MONOTONIC 1
 
+/* Define to 1 if you have the clock_gettime function and raw monotonic timer.
+   */
+#define HAVE_CLOCK_GETTIME_MONOTONIC_RAW 1
+
 /* Define to 1 if you have the closesocket function. */
 /* #undef HAVE_CLOSESOCKET */
 
 /* Define to 1 if you have the CloseSocket camel case function. */
 /* #undef HAVE_CLOSESOCKET_CAMEL */
-
-/* Define to 1 if you have the connect function. */
-#define HAVE_CONNECT 1
 
 /* Define to 1 if you have the <crypto.h> header file. */
 /* #undef HAVE_CRYPTO_H */
@@ -217,11 +212,11 @@
 /* Define to 1 if you have the `fnmatch' function. */
 #define HAVE_FNMATCH 1
 
-/* Define to 1 if you have the `fork' function. */
-#define HAVE_FORK 1
-
 /* Define to 1 if you have the freeaddrinfo function. */
 #define HAVE_FREEADDRINFO 1
+
+/* Define to 1 if you have the `fseeko' function. */
+#define HAVE_FSEEKO 1
 
 /* Define to 1 if you have the fsetxattr function. */
 #define HAVE_FSETXATTR 1
@@ -340,6 +335,9 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #define HAVE_INTTYPES_H 1
 
+/* Define to 1 if you have the ioctl function. */
+#define HAVE_IOCTL 1
+
 /* Define to 1 if you have the ioctlsocket function. */
 /* #undef HAVE_IOCTLSOCKET */
 
@@ -353,6 +351,12 @@
 /* Define to 1 if you have a working ioctlsocket FIONBIO function. */
 /* #undef HAVE_IOCTLSOCKET_FIONBIO */
 
+/* Define to 1 if you have a working ioctl FIONBIO function. */
+#define HAVE_IOCTL_FIONBIO 1
+
+/* Define to 1 if you have a working ioctl SIOCGIFADDR function. */
+#define HAVE_IOCTL_SIOCGIFADDR 1
+
 /* Define to 1 if you have the <io.h> header file. */
 /* #undef HAVE_IO_H */
 
@@ -361,6 +365,9 @@
 
 /* Define to 1 if you have the ldap.h header file. */
 /* #undef HAVE_LDAP_H */
+
+/* Define to 1 if you have the `ldap_init_fd' function. */
+/* #undef HAVE_LDAP_INIT_FD */
 
 /* Use LDAPS implementation */
 /* #undef HAVE_LDAP_SSL */
@@ -490,9 +497,6 @@
 /* Define to 1 if you have the `pipe' function. */
 #define HAVE_PIPE 1
 
-/* if you have the PK11_CreateManagedGenericObject function */
-/* #undef HAVE_PK11_CREATEMANAGEDGENERICOBJECT */
-
 /* If you have a fine poll */
 #define HAVE_POLL_FINE 1
 
@@ -516,9 +520,6 @@
 
 /* Define to 1 if you have the <quiche.h> header file. */
 /* #undef HAVE_QUICHE_H */
-
-/* Define to 1 if you have the `RAND_egd' function. */
-/* #undef HAVE_RAND_EGD */
 
 /* Define to 1 if you have the recv function. */
 #define HAVE_RECV 1
@@ -558,9 +559,6 @@
 
 /* Define to 1 if you have the signal function. */
 #define HAVE_SIGNAL 1
-
-/* Define to 1 if you have the <signal.h> header file. */
-#define HAVE_SIGNAL_H 1
 
 /* Define to 1 if you have the sigsetjmp function or macro. */
 /* #undef HAVE_SIGSETJMP */
@@ -625,6 +623,9 @@
 /* Define to 1 if you have the <string.h> header file. */
 #define HAVE_STRING_H 1
 
+/* Define to 1 if you have the <stropts.h> header file. */
+/* #undef HAVE_STROPTS_H */
+
 /* Define to 1 if you have the strtok_r function. */
 #define HAVE_STRTOK_R 1
 
@@ -673,9 +674,6 @@
 /* Define to 1 if you have the <sys/types.h> header file. */
 #define HAVE_SYS_TYPES_H 1
 
-/* Define to 1 if you have the <sys/uio.h> header file. */
-#define HAVE_SYS_UIO_H 1
-
 /* Define to 1 if you have the <sys/un.h> header file. */
 #define HAVE_SYS_UN_H 1
 
@@ -715,14 +713,8 @@
 /* Define to 1 if compiler supports old gcc variadic macro style. */
 #define HAVE_VARIADIC_MACROS_GCC 1
 
-/* Define to 1 if you have the wincrypt.h header file. */
-/* #undef HAVE_WINCRYPT_H */
-
 /* Define to 1 if you have the windows.h header file. */
 /* #undef HAVE_WINDOWS_H */
-
-/* Define to 1 if you have the winldap.h header file. */
-/* #undef HAVE_WINLDAP_H */
 
 /* Define to 1 if you have the winsock2.h header file. */
 /* #undef HAVE_WINSOCK2_H */
@@ -756,6 +748,9 @@
 
 /* Define to 1 if you have the <zstd.h> header file. */
 /* #undef HAVE_ZSTD_H */
+
+/* Define to 1 if you have the `_fseeki64' function. */
+/* #undef HAVE__FSEEKI64 */
 
 /* Define to the sub-directory where libtool stores uninstalled libraries. */
 #define LT_OBJDIR ".libs/"
@@ -809,7 +804,7 @@
 #define SIZEOF_INT 4
 
 /* Size of long in number of bytes */
-/* #undef SIZEOF_LONG_LONG */
+/* #undef SIZEOF_LONG 8 */
 
 /* Size of long long in number of bytes */
 /* #undef SIZEOF_LONG_LONG */
@@ -882,14 +877,11 @@
 /* if ngtcp2_crypto_gnutls is in use */
 /* #undef USE_NGTCP2_CRYPTO_GNUTLS */
 
-/* if ngtcp2_crypto_openssl is in use */
-/* #undef USE_NGTCP2_CRYPTO_OPENSSL */
+/* if ngtcp2_crypto_quictls is in use */
+/* #undef USE_NGTCP2_CRYPTO_QUICTLS */
 
 /* if ngtcp2_crypto_wolfssl is in use */
 /* #undef USE_NGTCP2_CRYPTO_WOLFSSL */
-
-/* if NSS is enabled */
-/* #undef USE_NSS */
 
 /* Use OpenLDAP-specific code */
 /* #undef USE_OPENLDAP */
