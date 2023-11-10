@@ -5,11 +5,11 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2018, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
- * are also available at https://curl.haxx.se/docs/copyright.html.
+ * are also available at https://curl.se/docs/copyright.html.
  *
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
  * copies of the Software, and permit persons to whom the Software is
@@ -17,6 +17,8 @@
  *
  * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
  * KIND, either express or implied.
+ *
+ * SPDX-License-Identifier: curl
  *
  ***************************************************************************/
 #include "test.h"
@@ -33,14 +35,12 @@
 #  include <fcntl.h> /* for setmode() */
 #endif
 
-#ifdef USE_NSS
-#include <nspr.h>
-#endif
-
 #ifdef CURLDEBUG
 #  define MEMDEBUG_NODEFINES
 #  include "memdebug.h"
 #endif
+
+#include "timediff.h"
 
 int select_wrapper(int nfds, fd_set *rd, fd_set *wr, fd_set *exc,
                    struct timeval *tv)
@@ -56,7 +56,7 @@ int select_wrapper(int nfds, fd_set *rd, fd_set *wr, fd_set *exc,
    * select() can not be used to sleep without a single fd_set.
    */
   if(!nfds) {
-    Sleep((1000*tv->tv_sec) + (DWORD)(((double)tv->tv_usec)/1000.0));
+    Sleep((DWORD)curlx_tvtoms(tv));
     return 0;
   }
 #endif
@@ -65,11 +65,13 @@ int select_wrapper(int nfds, fd_set *rd, fd_set *wr, fd_set *exc,
 
 void wait_ms(int ms)
 {
+#ifdef USE_WINSOCK
+  Sleep(ms);
+#else
   struct timeval t;
-  t.tv_sec = ms/1000;
-  ms -= (int)t.tv_sec * 1000;
-  t.tv_usec = ms * 1000;
+  curlx_mstotv(&t, ms);
   select_wrapper(0, NULL, NULL, NULL, &t);
+#endif
 }
 
 char *libtest_arg2 = NULL;
@@ -79,9 +81,7 @@ char **test_argv;
 
 struct timeval tv_test_start; /* for test timing */
 
-#ifdef UNITTESTS
 int unitfail; /* for unittests */
-#endif
 
 #ifdef CURLDEBUG
 static void memory_tracking_init(void)
@@ -96,10 +96,10 @@ static void memory_tracking_init(void)
       env[CURL_MT_LOGFNAME_BUFSIZE-1] = '\0';
     strcpy(fname, env);
     curl_free(env);
-    curl_memdebug(fname);
-    /* this weird stuff here is to make curl_free() get called
-       before curl_memdebug() as otherwise memory tracking will
-       log a free() without an alloc! */
+    curl_dbg_memdebug(fname);
+    /* this weird stuff here is to make curl_free() get called before
+       curl_dbg_memdebug() as otherwise memory tracking will log a free()
+       without an alloc! */
   }
   /* if CURL_MEMLIMIT is set, this enables fail-on-alloc-number-N feature */
   env = curl_getenv("CURL_MEMLIMIT");
@@ -107,7 +107,7 @@ static void memory_tracking_init(void)
     char *endptr;
     long num = strtol(env, &endptr, 10);
     if((endptr != env) && (endptr == env + strlen(env)) && (num > 0))
-      curl_memlimit(num);
+      curl_dbg_memlimit(num);
     curl_free(env);
   }
 }
@@ -146,7 +146,7 @@ int main(int argc, char **argv)
 
   /*
    * Setup proper locale from environment. This is needed to enable locale-
-   * specific behaviour by the C library in order to test for undesired side
+   * specific behavior by the C library in order to test for undesired side
    * effects that could cause in libcurl.
    */
 #ifdef HAVE_SETLOCALE
@@ -172,12 +172,14 @@ int main(int argc, char **argv)
   fprintf(stderr, "URL: %s\n", URL);
 
   result = test(URL);
+  fprintf(stderr, "Test ended with result %d\n", result);
 
-#ifdef USE_NSS
-  if(PR_Initialized())
-    /* prevent valgrind from reporting possibly lost memory (fd cache, ...) */
-    PR_Cleanup();
+#ifdef WIN32
+  /* flush buffers of all streams regardless of mode */
+  _flushall();
 #endif
 
-  return result;
+  /* Regular program status codes are limited to 0..127 and 126 and 127 have
+   * special meanings by the shell, so limit a normal return code to 125 */
+  return result <= 125 ? result : 125;
 }

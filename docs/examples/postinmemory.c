@@ -5,11 +5,11 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2018, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
- * are also available at https://curl.haxx.se/docs/copyright.html.
+ * are also available at https://curl.se/docs/copyright.html.
  *
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
  * copies of the Software, and permit persons to whom the Software is
@@ -18,9 +18,11 @@
  * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
  * KIND, either express or implied.
  *
+ * SPDX-License-Identifier: curl
+ *
  ***************************************************************************/
 /* <DESC>
- * Make a HTTP POST with data from memory and receive response in memory.
+ * Make an HTTP POST with data from memory and receive response in memory.
  * </DESC>
  */
 #include <stdio.h>
@@ -67,7 +69,6 @@ int main(void)
   curl_global_init(CURL_GLOBAL_ALL);
   curl = curl_easy_init();
   if(curl) {
-
     curl_easy_setopt(curl, CURLOPT_URL, "https://www.example.org/");
 
     /* send all data to this function  */
@@ -76,13 +77,13 @@ int main(void)
     /* we pass our 'chunk' struct to the callback function */
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
 
-    /* some servers don't like requests that are made without a user-agent
+    /* some servers do not like requests that are made without a user-agent
        field, so we provide one */
     curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
 
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postthis);
 
-    /* if we don't provide POSTFIELDSIZE, libcurl will strlen() by
+    /* if we do not provide POSTFIELDSIZE, libcurl will strlen() by
        itself */
     curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)strlen(postthis));
 
@@ -105,11 +106,9 @@ int main(void)
 
     /* always cleanup */
     curl_easy_cleanup(curl);
-
-    free(chunk.memory);
-
-    /* we're done with libcurl, so clean it up */
-    curl_global_cleanup();
   }
+
+  free(chunk.memory);
+  curl_global_cleanup();
   return 0;
 }

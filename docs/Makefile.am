@@ -5,11 +5,11 @@
 #                            | (__| |_| |  _ <| |___
 #                             \___|\___/|_| \_\_____|
 #
-# Copyright (C) 1998 - 2018, Daniel Stenberg, <daniel@haxx.se>, et al.
+# Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
 #
 # This software is licensed as described in the file COPYING, which
 # you should have received as part of this distribution. The terms
-# are also available at https://curl.haxx.se/docs/copyright.html.
+# are also available at https://curl.se/docs/copyright.html.
 #
 # You may opt to use, copy, modify, merge, publish, distribute and/or sell
 # copies of the Software, and permit persons to whom the Software is
@@ -17,6 +17,8 @@
 #
 # This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
 # KIND, either express or implied.
+#
+# SPDX-License-Identifier: curl
 #
 ###########################################################################
 
@@ -31,7 +33,7 @@ GENHTMLPAGES = curl.html curl-config.html mk-ca-bundle.html
 PDFPAGES = curl.pdf curl-config.pdf mk-ca-bundle.pdf
 MANDISTPAGES = curl.1.dist curl-config.1.dist
 
-HTMLPAGES = $(GENHTMLPAGES) index.html
+HTMLPAGES = $(GENHTMLPAGES)
 
 # Build targets in this file (.) before cmdline-opts to ensure that
 # the curl.1 rule below runs first
@@ -42,44 +44,58 @@ CLEANFILES = $(GENHTMLPAGES) $(PDFPAGES) $(MANDISTPAGES) curl.1
 
 EXTRA_DIST =                                    \
  $(noinst_man_MANS)                             \
+ ALTSVC.md                                      \
  BINDINGS.md                                    \
- BUGS                                           \
+ BUFREF.md                                      \
+ BUG-BOUNTY.md                                  \
+ BUGS.md                                        \
  CHECKSRC.md                                    \
  CIPHERS.md                                     \
  CMakeLists.txt                                 \
  CODE_OF_CONDUCT.md                             \
+ CODE_REVIEW.md                                 \
  CODE_STYLE.md                                  \
+ CONNECTION-FILTERS.md                          \
  CONTRIBUTE.md                                  \
+ CURL-DISABLE.md                                \
  DEPRECATE.md                                   \
+ DYNBUF.md                                      \
+ EARLY-RELEASE.md                               \
+ EXPERIMENTAL.md                                \
  FAQ                                            \
- FEATURES                                       \
+ FEATURES.md                                    \
  GOVERNANCE.md                                  \
  HELP-US.md                                     \
  HISTORY.md                                     \
+ HSTS.md                                        \
  HTTP-COOKIES.md                                \
  HTTP2.md                                       \
+ HTTP3.md                                       \
+ HYPER.md                                       \
  INSTALL                                        \
  INSTALL.cmake                                  \
  INSTALL.md                                     \
  INTERNALS.md                                   \
  KNOWN_BUGS                                     \
- LICENSE-MIXING.md                              \
  MAIL-ETIQUETTE                                 \
- MANUAL                                         \
- README.cmake                                   \
+ MQTT.md                                        \
+ NEW-PROTOCOL.md                                \
+ options-in-versions                            \
+ PARALLEL-TRANSFERS.md                          \
  README.md                                      \
- README.netware                                 \
- README.win32                                   \
  RELEASE-PROCEDURE.md                           \
- RESOURCES                                      \
+ RUSTLS.md                                      \
  ROADMAP.md                                     \
- SECURITY-PROCESS.md                            \
+ SECURITY-ADVISORY.md                           \
  SSL-PROBLEMS.md                                \
  SSLCERTS.md                                    \
  THANKS                                         \
  TODO                                           \
- TheArtOfHttpScripting                          \
- VERSIONS
+ TheArtOfHttpScripting.md                       \
+ URL-SYNTAX.md                                  \
+ VERSIONS.md                                    \
+ VULN-DISCLOSURE-POLICY.md                      \
+ WEBSOCKET.md
 
 MAN2HTML= roffit $< >$@
 
@@ -95,7 +111,8 @@ SUFFIXES = .1 .html .pdf
 # have changed.
 $(abs_builddir)/curl.1:
 	if test "$(top_builddir)x" != "$(top_srcdir)x" -a -e "$(srcdir)/curl.1"; then \
-		cp -fp "$(srcdir)/curl.1" $@; fi
+		$(INSTALL_DATA) "$(srcdir)/curl.1" $@ \
+		&& touch -r "$(srcdir)/curl.1" $@; fi
 	cd cmdline-opts && $(MAKE)
 
 html: $(HTMLPAGES)

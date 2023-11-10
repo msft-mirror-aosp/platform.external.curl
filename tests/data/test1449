@@ -1,5 +1,5 @@
-# initially based on test110
 <testcase>
+# initially based on test110
 <info>
 <keywords>
 FTP
@@ -17,11 +17,11 @@ Resume
 <server>
 ftp
 </server>
- <name>
+<name>
 FTP download range with integer overflow
- </name>
- <command>
-ftp://%HOSTIP:%FTPPORT/1449 -r 36893488147419103232-
+</name>
+<command>
+ftp://%HOSTIP:%FTPPORT/%TESTNUMBER -r 36893488147419103232-
 </command>
 </client>
 

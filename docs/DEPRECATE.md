@@ -1,66 +1,37 @@
 # Items to be removed from future curl releases
 
 If any of these deprecated features is a cause for concern for you, please
-email the curl-library mailing list as soon as possible and explain to us why
-this is a problem for you and how your use case can't be satisfied properly
-using a work around.
+email the
+[curl-library mailing list](https://lists.haxx.se/listinfo/curl-library)
+as soon as possible and explain to us why this is a problem for you and
+how your use case cannot be satisfied properly using a workaround.
 
-## HTTP pipelining
+## space-separated `NOPROXY` patterns
 
-HTTP pipelining is badly supported by curl in the sense that we have bugs and
-it is a fragile feature without enough tests. Also, when something turns out
-to have problems it is really tricky to debug due to the timing sensitivity so
-very often enabling debug outputs or similar completely changes the nature of
-the behavior and things are not reproducing anymore!
+When specifying patterns/domain names for curl that should *not* go through a
+proxy, the curl tool features the `--noproxy` command line option and the
+library supports the `NO_PROXY` environment variable and the `CURLOPT_NOPROXY`
+libcurl option.
 
-HTTP pipelining was never enabled by default by the large desktop browsers due
-to all the issues with it. Both Firefox and Chrome have also dropped
-pipelining support entirely since a long time back now. We are in fact over
-time becoming more and more lonely in supporting pipelining.
+They all set the same list of patterns. This list is documented to be a set of
+**comma-separated** names, but can also be provided separated with just
+space. The ability to just use spaces for this has never been documented but
+some users may still have come to rely on this.
 
-The bad state of HTTP pipelining was a primary driving factor behind HTTP/2
-and its multiplexing feature. HTTP/2 multiplexing is truly and really
-"pipelining done right". It is way more solid, practical and solves the use
-case in a better way with better performance and fewer downsides and problems.
+Several other tools and utilities also parse the `NO_PROXY` environment
+variable but do not consider a space to be a valid separator. Using spaces for
+separator is probably less portable and might cause more friction than commas
+do. Users should use commas for this for greater portability.
 
-In 2018, pipelining *should* be abandoned and HTTP/2 should be used instead.
+curl will remove the support for space-separated names in July 2024.
 
-### State
+## past removals
 
-In 7.62.0, we will add code that ignores the "enable pipeline" option
-setting). The *setopt() function would still return "OK" though so the
-application couldn't tell that this is happening.
-
-Users who truly need pipelining from that version will need to modify the code
-(ever so slightly) and rebuild.
-
-### Removal
-
-Six months later, in sync with the planned release happen in April 2019,
-(might be 7.66.0), assuming no major riots have occurred due to this in the
-mean time, we rip out the pipelining code. It is in the order of 1000 lines of
-libcurl code.
-
-Left to answer: should the *setopt() function start to return error when these
-options are set to be able to tell when they're trying to use options that are
-no longer around or should we maintain behavior as much as possible?
-
-## `CURLOPT_DNS_USE_GLOBAL_CACHE`
-
-This option makes libcurl use a global non-thread-safe cache for DNS if
-enabled. The option has been marked as "obsolete" in the header file and in
-documentation for several years already.
-
-There's proper and safe method alternative provided since many years: the
-share API.
-
-### State
-
-In curl 7.62.0 setting this option to TRUE will not have any effect. The
-global cache will not be enabled. The code still remains so it is easy to
-revert if need be.
-
-### Removal
-
-Remove all global-cache related code from curl around April 2019 (might be
-7.66.0).
+ - Pipelining
+ - axTLS
+ - PolarSSL
+ - NPN
+ - Support for systems without 64 bit data types
+ - NSS
+ - gskit
+ - mingw v1

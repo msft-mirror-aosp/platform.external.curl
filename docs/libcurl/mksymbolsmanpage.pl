@@ -6,11 +6,11 @@
 # *                            | (__| |_| |  _ <| |___
 # *                             \___|\___/|_| \_\_____|
 # *
-# * Copyright (C) 2015, Daniel Stenberg, <daniel@haxx.se>, et al.
+# * Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
 # *
 # * This software is licensed as described in the file COPYING, which
 # * you should have received as part of this distribution. The terms
-# * are also available at https://curl.haxx.se/docs/copyright.html.
+# * are also available at https://curl.se/docs/copyright.html.
 # *
 # * You may opt to use, copy, modify, merge, publish, distribute and/or sell
 # * copies of the Software, and permit persons to whom the Software is
@@ -19,13 +19,21 @@
 # * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
 # * KIND, either express or implied.
 # *
+# * SPDX-License-Identifier: curl
+# *
 # ***************************************************************************
 
 my $version="7.41.0";
 
 use POSIX qw(strftime);
-my $date = strftime "%b %e, %Y", localtime;
-my $year = strftime "%Y", localtime;
+my @ts;
+if (defined($ENV{SOURCE_DATE_EPOCH})) {
+    @ts = localtime($ENV{SOURCE_DATE_EPOCH});
+} else {
+    @ts = localtime;
+}
+my $date = strftime "%b %e, %Y", @ts;
+my $year = strftime "%Y", @ts;
 
 print <<HEADER
 .\\" **************************************************************************
@@ -35,11 +43,11 @@ print <<HEADER
 .\\" *                            | (__| |_| |  _ <| |___
 .\\" *                             \\___|\\___/|_| \\_\\_____|
 .\\" *
-.\\" * Copyright (C) 1998 - $year, Daniel Stenberg, <daniel\@haxx.se>, et al.
+.\\" * Copyright (C) Daniel Stenberg, <daniel\@haxx.se>, et al.
 .\\" *
 .\\" * This software is licensed as described in the file COPYING, which
 .\\" * you should have received as part of this distribution. The terms
-.\\" * are also available at https://curl.haxx.se/docs/copyright.html.
+.\\" * are also available at https://curl.se/docs/copyright.html.
 .\\" *
 .\\" * You may opt to use, copy, modify, merge, publish, distribute and/or sell
 .\\" * copies of the Software, and permit persons to whom the Software is
@@ -48,8 +56,10 @@ print <<HEADER
 .\\" * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
 .\\" * KIND, either express or implied.
 .\\" *
+.\\" * SPDX-License-Identifier: curl
+.\\" *
 .\\" **************************************************************************
-.TH libcurl-symbols 3 "$date" "libcurl $version" "libcurl symbols"
+.TH libcurl-symbols 3 "$date" "libcurl" "libcurl"
 .SH NAME
 libcurl-symbols \\- libcurl symbol version information
 .SH "libcurl symbols"
@@ -69,7 +79,7 @@ HEADER
     ;
 
 while(<STDIN>) {
-    if($_ =~ /^(CURL[A-Z0-9_.]*) *(.*)/) {
+    if($_ =~ /^(CURL[A-Z0-9_.]*) *(.*)/i) {
         my ($symbol, $rest)=($1,$2);
         my ($intro, $dep, $rem);
         if($rest =~ s/^([0-9.]*) *//) {
@@ -86,7 +96,7 @@ while(<STDIN>) {
           print "Deprecated since $dep\n";
         }
         if($rem) {
-          print "Last used in $dep\n";
+          print "Last used in $rem\n";
         }
     }
 
