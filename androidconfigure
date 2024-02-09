@@ -9,41 +9,44 @@ if [[ "${TARGET_PRODUCT}" != "aosp_arm" ]]; then
   exit 1
 fi
 
+T="${ANDROID_BUILD_TOP}"
 cd $(dirname "$0")
 
+# Build all the dependencies we'll need, so we can find them under
+# /system/lib in the out directory.
+source ${T}/build/envsetup.sh
+mm
+
 HOST="arm-linux-androideabi"
-T="${ANDROID_BUILD_TOP}"
 CLANG_VERSION="$(exec ${T}/build/soong/scripts/get_clang_version.py)"
 export CC="${T}/prebuilts/clang/host/linux-x86/${CLANG_VERSION}/bin/clang"
 export LD="${T}/prebuilts/clang/host/linux-x86/${CLANG_VERSION}/bin/lld"
 
 CFLAGS=(
-  "-isystem ${T}/external/libcxx/include"
-  "-isystem ${T}/bionic/libc/include/"
-  "-isystem ${T}/bionic/libc/arch-arm/include"
-  "-isystem ${T}/bionic/libc/kernel/uapi/"
-  "-isystem ${T}/bionic/libc/kernel/android/uapi/"
-  "-isystem ${T}/bionic/libm/include"
-  "-fno-exceptions"
-  "-ffunction-sections"
-  "-fdata-sections"
-  "-fstack-protector"
-  "-fno-short-enums"
-  "-no-canonical-prefixes"
-  "-fmessage-length=0"
-  "-fomit-frame-pointer"
-  "-fPIC"
-  "-fno-strict-aliasing"
-  "-nostdlib"
+  # We don't have an NDK sysroot prebuilt in AOSP, so we'll have use
+  # soong's.
+  "--sysroot ${T}/out/soong/ndk/sysroot/"
+  # We also need zlib. (We don't have to do anything for boringssl here,
+  # because we provide that path directly on the configure command line.)
+  "-I${T}/external/zlib/"
+  # We don't have target-specific clang binaries like the NDK, so provide
+  # a target. The "34" here is arbitrary.
+  "--target=armv7a-linux-androideabi34"
 )
 CFLAGS="${CFLAGS[@]}"
+
+LDFLAGS=(
+  # We need the device zlib and openssl/boringssl libraries, so tell ld
+  # where they are.
+  "-L${ANDROID_PRODUCT_OUT}/system/lib/"
+)
+LDFLAGS="${LDFLAGS[@]}"
 
 CONFIGURE_ARGS=(
   --host="${HOST}"
   CFLAGS="${CFLAGS}"
-  LIBS="-lc"
-  CPPFLAGS="${CFLAGS} -I${T}/external/zlib/src"
-  LDFLAGS="-L${ANDROID_PRODUCT_OUT}/system/lib/"
+  CPPFLAGS="${CFLAGS}"
+  LDFLAGS="${LDFLAGS}"
 
   # Disable NTLM delegation to winbind's ntlm_auth.
   --disable-ntlm-wb
@@ -71,7 +74,6 @@ CONFIGURE_ARGS=(
 
   # Disable DICT support (RFC 2229).
   --disable-dict
-
 
   ### Enable HTTP and FILE explicitly. These are enabled by default but
   # listed here as documentation.
