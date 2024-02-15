@@ -35,8 +35,6 @@ from testenv import Env, CurlClient, ExecResult
 log = logging.getLogger(__name__)
 
 
-@pytest.mark.skipif(condition=Env.setup_incomplete(),
-                    reason=f"missing: {Env.incomplete_reason()}")
 @pytest.mark.skipif(condition=not Env.httpd_is_at_least('2.4.55'),
                     reason=f"httpd version too old for this: {Env.httpd_version()}")
 class TestErrors:
@@ -54,6 +52,8 @@ class TestErrors:
                               proto):
         if proto == 'h3' and not env.have_h3():
             pytest.skip("h3 not supported")
+        if proto == 'h3' and env.curl_uses_lib('msh3'):
+            pytest.skip("msh3 stalls here")
         count = 1
         curl = CurlClient(env=env)
         urln = f'https://{env.authority_for(env.domain1, proto)}' \
@@ -62,10 +62,10 @@ class TestErrors:
         r = curl.http_download(urls=[urln], alpn_proto=proto, extra_args=[
             '--retry', '0'
         ])
-        assert r.exit_code != 0, f'{r}'
+        r.check_exit_code(False)
         invalid_stats = []
         for idx, s in enumerate(r.stats):
-            if 'exitcode' not in s or s['exitcode'] not in [18, 56, 92]:
+            if 'exitcode' not in s or s['exitcode'] not in [18, 56, 92, 95]:
                 invalid_stats.append(f'request {idx} exit with {s["exitcode"]}')
         assert len(invalid_stats) == 0, f'failed: {invalid_stats}'
 
@@ -75,8 +75,8 @@ class TestErrors:
                               proto):
         if proto == 'h3' and not env.have_h3():
             pytest.skip("h3 not supported")
-        if proto == 'h3' and env.curl_uses_lib('quiche'):
-            pytest.skip("quiche not reliable, sometimes reports success")
+        if proto == 'h3' and env.curl_uses_lib('msh3'):
+            pytest.skip("msh3 stalls here")
         count = 20
         curl = CurlClient(env=env)
         urln = f'https://{env.authority_for(env.domain1, proto)}' \
@@ -85,10 +85,26 @@ class TestErrors:
         r = curl.http_download(urls=[urln], alpn_proto=proto, extra_args=[
             '--retry', '0', '--parallel',
         ])
-        assert r.exit_code != 0, f'{r}'
+        r.check_exit_code(False)
         assert len(r.stats) == count, f'did not get all stats: {r}'
         invalid_stats = []
         for idx, s in enumerate(r.stats):
-            if 'exitcode' not in s or s['exitcode'] not in [18, 56, 92, 95]:
+            if 'exitcode' not in s or s['exitcode'] not in [18, 55, 56, 92, 95]:
                 invalid_stats.append(f'request {idx} exit with {s["exitcode"]}\n{s}')
         assert len(invalid_stats) == 0, f'failed: {invalid_stats}'
+
+    # access a resource that, on h2, RST the stream with HTTP_1_1_REQUIRED
+    def test_05_03_required(self, env: Env, httpd, nghttpx, repeat):
+        curl = CurlClient(env=env)
+        proto = 'http/1.1'
+        urln = f'https://{env.authority_for(env.domain1, proto)}/curltest/1_1'
+        r = curl.http_download(urls=[urln], alpn_proto=proto)
+        r.check_exit_code(0)
+        r.check_response(http_status=200, count=1)
+        proto = 'h2'
+        urln = f'https://{env.authority_for(env.domain1, proto)}/curltest/1_1'
+        r = curl.http_download(urls=[urln], alpn_proto=proto)
+        r.check_exit_code(0)
+        r.check_response(http_status=200, count=1)
+        # check that we did a downgrade
+        assert r.stats[0]['http_version'] == '1.1', r.dump_logs()

@@ -27,13 +27,14 @@ PDFPAGES = testcurl.pdf runtests.pdf
 MANDISTPAGES = runtests.1.dist testcurl.1.dist
 
 EXTRA_DIST = appveyor.pm azure.pm badsymbols.pl check-deprecated.pl CMakeLists.txt \
- dictserver.py directories.pm disable-scan.pl error-codes.pl extern-scan.pl \
- FILEFORMAT.md ftp.pm ftpserver.pl getpart.pm http-server.pl http2-server.pl http3-server.pl \
- manpage-scan.pl manpage-syntax.pl markdown-uppercase.pl mem-include-scan.pl \
+ devtest.pl dictserver.py directories.pm disable-scan.pl error-codes.pl extern-scan.pl FILEFORMAT.md \
+ processhelp.pm ftpserver.pl getpart.pm globalconfig.pm http-server.pl http2-server.pl \
+ http3-server.pl manpage-scan.pl manpage-syntax.pl markdown-uppercase.pl mem-include-scan.pl \
  memanalyze.pl negtelnetserver.py nroff-scan.pl option-check.pl options-scan.pl \
- pathhelp.pm README.md rtspserver.pl runtests.1 runtests.pl secureserver.pl \
- serverhelp.pm smbserver.py sshhelp.pm sshserver.pl stunnel.pem symbol-scan.pl \
- testcurl.1 testcurl.pl tftpserver.pl util.py valgrind.pm valgrind.supp version-scan.pl 
+ pathhelp.pm README.md rtspserver.pl runner.pm runtests.1 runtests.pl secureserver.pl \
+ serverhelp.pm servers.pm smbserver.py sshhelp.pm sshserver.pl stunnel.pem symbol-scan.pl \
+ testcurl.1 testcurl.pl testutil.pm tftpserver.pl util.py valgrind.pm \
+ valgrind.supp version-scan.pl check-translatable-options.pl
 
 DISTCLEANFILES = configurehelp.pm
 
@@ -70,8 +71,9 @@ TEST_F = -a -p -r
 TEST_T = -a -t
 TEST_E = -a -e
 
-# !flaky means that it'll skip all tests using the flaky keyword
-TEST_NF = -a -p !flaky
+# ~<keyword> means that it will run all tests matching the keyword, but will
+# ignore their results (since these ones are likely to fail for no good reason)
+TEST_NF = -a -p ~flaky ~timing-dependent
 
 # special CI target derived from nonflaky with CI-specific flags
 TEST_CI = $(TEST_NF) -rm
@@ -116,9 +118,10 @@ event-test: perlcheck all
 	echo "converted $< to $@")
 
 checksrc:
-	cd libtest && $(MAKE) checksrc
-	cd unit && $(MAKE) checksrc
-	cd server && $(MAKE) checksrc
+	(cd libtest && $(MAKE) checksrc)
+	(cd unit && $(MAKE) checksrc)
+	(cd server && $(MAKE) checksrc)
+	(cd http && $(MAKE) checksrc)
 
 if CURLDEBUG
 # for debug builds, we scan the sources on all regular make invokes

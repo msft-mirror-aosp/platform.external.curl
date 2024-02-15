@@ -22,7 +22,7 @@
 .\" *
 .\" **************************************************************************
 .\"
-.TH CURLOPT_WILDCARDMATCH 3 "16 Jun 2014" "libcurl 7.37.0" "curl_easy_setopt options"
+.TH CURLOPT_WILDCARDMATCH 3 "16 Jun 2014" libcurl libcurl
 .SH NAME
 CURLOPT_WILDCARDMATCH \- directory wildcard transfers
 .SH SYNOPSIS
@@ -105,4 +105,7 @@ Added in 7.21.0
 .SH RETURN VALUE
 Returns CURLE_OK if the option is supported, and CURLE_UNKNOWN_OPTION if not.
 .SH "SEE ALSO"
-.BR CURLOPT_FNMATCH_FUNCTION "(3), " CURLOPT_URL "(3), "
+.BR CURLOPT_CHUNK_BGN_FUNCTION (3),
+.BR CURLOPT_CHUNK_END_FUNCTION (3),
+.BR CURLOPT_FNMATCH_FUNCTION (3),
+.BR CURLOPT_URL (3)

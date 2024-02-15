@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: curl
 
-name: Linux
+name: Linux torture
 
 on:
   push:
@@ -11,10 +11,12 @@ on:
     - '*/ci'
     paths-ignore:
     - '**/*.md'
+    - '**/CMakeLists.txt'
     - '.azure-pipelines.yml'
     - '.circleci/**'
     - '.cirrus.yml'
     - 'appveyor.yml'
+    - 'CMake/**'
     - 'packages/**'
     - 'plan9/**'
     - 'projects/**'
@@ -24,10 +26,12 @@ on:
     - master
     paths-ignore:
     - '**/*.md'
+    - '**/CMakeLists.txt'
     - '.azure-pipelines.yml'
     - '.circleci/**'
     - '.cirrus.yml'
     - 'appveyor.yml'
+    - 'CMake/**'
     - 'packages/**'
     - 'plan9/**'
     - 'projects/**'
@@ -39,6 +43,9 @@ concurrency:
   cancel-in-progress: true
 
 permissions: {}
+
+env:
+  MAKEFLAGS: -j 3
 
 jobs:
   autotools:
@@ -65,7 +72,7 @@ jobs:
         sudo python3 -m pip install impacket
       name: 'install prereqs and impacket'
 
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - run: autoreconf -fi
       name: 'autoreconf'
