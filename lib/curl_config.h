@@ -184,6 +184,9 @@
 /* Define to 1 if you have the <crypto.h> header file. */
 /* #undef HAVE_CRYPTO_H */
 
+/* Define to 1 if you have the fseeko declaration */
+#define HAVE_DECL_FSEEKO 1
+
 /* Define to 1 if you have the declaration of `getpwuid_r', and to 0 if you
    don't. */
 #define HAVE_DECL_GETPWUID_R 1
@@ -196,9 +199,6 @@
 
 /* Define to 1 if you have the <err.h> header file. */
 /* #undef HAVE_ERR_H */
-
-/* Define to 1 if you have the `fchmod' function. */
-#define HAVE_FCHMOD 1
 
 /* Define to 1 if you have the fcntl function. */
 #define HAVE_FCNTL 1
@@ -307,12 +307,6 @@
 
 /* if you have GNU GSS */
 /* #undef HAVE_GSSGNU */
-
-/* if you have Heimdal */
-/* #undef HAVE_GSSHEIMDAL */
-
-/* if you have MIT Kerberos */
-/* #undef HAVE_GSSMIT */
 
 /* Define to 1 if you have the <hyper.h> header file. */
 /* #undef HAVE_HYPER_H */
@@ -707,18 +701,6 @@
 /* Define to 1 if you have the <utime.h> header file. */
 #define HAVE_UTIME_H 1
 
-/* Define to 1 if compiler supports C99 variadic macro style. */
-#define HAVE_VARIADIC_MACROS_C99 1
-
-/* Define to 1 if compiler supports old gcc variadic macro style. */
-#define HAVE_VARIADIC_MACROS_GCC 1
-
-/* Define to 1 if you have the windows.h header file. */
-/* #undef HAVE_WINDOWS_H */
-
-/* Define to 1 if you have the winsock2.h header file. */
-/* #undef HAVE_WINSOCK2_H */
-
 /* Define to 1 if you have the <wolfssh/ssh.h> header file. */
 /* #undef HAVE_WOLFSSH_SSH_H */
 
@@ -736,9 +718,6 @@
 
 /* Define this symbol if your OS supports changing the contents of argv */
 #define HAVE_WRITABLE_ARGV 1
-
-/* Define to 1 if you have the ws2tcpip.h header file. */
-/* #undef HAVE_WS2TCPIP_H */
 
 /* Define to 1 if you have the <x509.h> header file. */
 /* #undef HAVE_X509_H */
@@ -873,6 +852,9 @@
 
 /* if ngtcp2 is in use */
 /* #undef USE_NGTCP2 */
+
+/* if ngtcp2_crypto_boringssl is in use */
+/* #undef USE_NGTCP2_CRYPTO_BORINGSSL */
 
 /* if ngtcp2_crypto_gnutls is in use */
 /* #undef USE_NGTCP2_CRYPTO_GNUTLS */
