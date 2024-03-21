@@ -88,9 +88,6 @@ cc_library {
     name: "libcurl",
     vendor_available: true,
     product_available: true,
-    vndk: {
-        enabled: true,
-    },
     defaults: ["curl_common_defaults"],
     export_include_dirs: ["include"],
     host_supported: true,
