@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -48,9 +48,6 @@
 #endif
 #ifdef HAVE_ARPA_INET_H
 #include <arpa/inet.h>
-#endif
-#ifdef HAVE_UTSNAME_H
-#include <sys/utsname.h>
 #endif
 #ifdef HAVE_NETDB_H
 #include <netdb.h>
@@ -133,7 +130,7 @@ const struct Curl_handler Curl_handler_smtp = {
   ZERO_NULL,                        /* domore_getsock */
   ZERO_NULL,                        /* perform_getsock */
   smtp_disconnect,                  /* disconnect */
-  ZERO_NULL,                        /* readwrite */
+  ZERO_NULL,                        /* write_resp */
   ZERO_NULL,                        /* connection_check */
   ZERO_NULL,                        /* attach connection */
   PORT_SMTP,                        /* defport */
@@ -162,7 +159,7 @@ const struct Curl_handler Curl_handler_smtps = {
   ZERO_NULL,                        /* domore_getsock */
   ZERO_NULL,                        /* perform_getsock */
   smtp_disconnect,                  /* disconnect */
-  ZERO_NULL,                        /* readwrite */
+  ZERO_NULL,                        /* write_resp */
   ZERO_NULL,                        /* connection_check */
   ZERO_NULL,                        /* attach connection */
   PORT_SMTPS,                       /* defport */
@@ -253,8 +250,8 @@ static bool smtp_endofresp(struct Curl_easy *data, struct connectdata *conn,
  */
 static CURLcode smtp_get_message(struct Curl_easy *data, struct bufref *out)
 {
-  char *message = data->state.buffer;
-  size_t len = strlen(message);
+  char *message = Curl_dyn_ptr(&data->conn->proto.smtpc.pp.recvbuf);
+  size_t len = data->conn->proto.smtpc.pp.nfinal;
 
   if(len > 4) {
     /* Find the start of the message */
@@ -281,11 +278,11 @@ static CURLcode smtp_get_message(struct Curl_easy *data, struct bufref *out)
 
 /***********************************************************************
  *
- * state()
+ * smtp_state()
  *
  * This is the ONLY way to change SMTP state!
  */
-static void state(struct Curl_easy *data, smtpstate newstate)
+static void smtp_state(struct Curl_easy *data, smtpstate newstate)
 {
   struct smtp_conn *smtpc = &data->conn->proto.smtpc;
 #if defined(DEBUGBUILD) && !defined(CURL_DISABLE_VERBOSE_STRINGS)
@@ -338,7 +335,7 @@ static CURLcode smtp_perform_ehlo(struct Curl_easy *data)
   result = Curl_pp_sendf(data, &smtpc->pp, "EHLO %s", smtpc->domain);
 
   if(!result)
-    state(data, SMTP_EHLO);
+    smtp_state(data, SMTP_EHLO);
 
   return result;
 }
@@ -362,7 +359,7 @@ static CURLcode smtp_perform_helo(struct Curl_easy *data,
   result = Curl_pp_sendf(data, &smtpc->pp, "HELO %s", smtpc->domain);
 
   if(!result)
-    state(data, SMTP_HELO);
+    smtp_state(data, SMTP_HELO);
 
   return result;
 }
@@ -381,7 +378,7 @@ static CURLcode smtp_perform_starttls(struct Curl_easy *data,
                                   "%s", "STARTTLS");
 
   if(!result)
-    state(data, SMTP_STARTTLS);
+    smtp_state(data, SMTP_STARTTLS);
 
   return result;
 }
@@ -398,17 +395,19 @@ static CURLcode smtp_perform_upgrade_tls(struct Curl_easy *data)
   struct connectdata *conn = data->conn;
   struct smtp_conn *smtpc = &conn->proto.smtpc;
   CURLcode result;
+  bool ssldone = FALSE;
 
-  if(!Curl_conn_is_ssl(data, FIRSTSOCKET)) {
+  if(!Curl_conn_is_ssl(conn, FIRSTSOCKET)) {
     result = Curl_ssl_cfilter_add(data, conn, FIRSTSOCKET);
     if(result)
       goto out;
   }
 
-  result = Curl_conn_connect(data, FIRSTSOCKET, FALSE, &smtpc->ssldone);
+  result = Curl_conn_connect(data, FIRSTSOCKET, FALSE, &ssldone);
   if(!result) {
+    smtpc->ssldone = ssldone;
     if(smtpc->state != SMTP_UPGRADETLS)
-      state(data, SMTP_UPGRADETLS);
+      smtp_state(data, SMTP_UPGRADETLS);
 
     if(smtpc->ssldone) {
       smtp_to_smtps(conn);
@@ -497,7 +496,7 @@ static CURLcode smtp_perform_authentication(struct Curl_easy *data)
      server supports authentication, and end the connect phase if not */
   if(!smtpc->auth_supported ||
      !Curl_sasl_can_authenticate(&smtpc->sasl, data)) {
-    state(data, SMTP_STOP);
+    smtp_state(data, SMTP_STOP);
     return result;
   }
 
@@ -506,7 +505,7 @@ static CURLcode smtp_perform_authentication(struct Curl_easy *data)
 
   if(!result) {
     if(progress == SASL_INPROGRESS)
-      state(data, SMTP_AUTH);
+      smtp_state(data, SMTP_AUTH);
     else {
       /* Other mechanisms not supported */
       infof(data, "No known authentication mechanisms supported");
@@ -584,7 +583,7 @@ static CURLcode smtp_perform_command(struct Curl_easy *data)
                            smtp->custom : "HELP");
 
   if(!result)
-    state(data, SMTP_COMMAND);
+    smtp_state(data, SMTP_COMMAND);
 
   return result;
 }
@@ -769,7 +768,7 @@ static CURLcode smtp_perform_mail(struct Curl_easy *data)
   free(size);
 
   if(!result)
-    state(data, SMTP_MAIL);
+    smtp_state(data, SMTP_MAIL);
 
   return result;
 }
@@ -810,7 +809,7 @@ static CURLcode smtp_perform_rcpt_to(struct Curl_easy *data)
   free(address);
 
   if(!result)
-    state(data, SMTP_RCPT);
+    smtp_state(data, SMTP_RCPT);
 
   return result;
 }
@@ -828,7 +827,7 @@ static CURLcode smtp_perform_quit(struct Curl_easy *data,
   CURLcode result = Curl_pp_sendf(data, &conn->proto.smtpc.pp, "%s", "QUIT");
 
   if(!result)
-    state(data, SMTP_QUIT);
+    smtp_state(data, SMTP_QUIT);
 
   return result;
 }
@@ -860,7 +859,7 @@ static CURLcode smtp_state_starttls_resp(struct Curl_easy *data,
   (void)instate; /* no use for this yet */
 
   /* Pipelining in response is forbidden. */
-  if(data->conn->proto.smtpc.pp.cache_size)
+  if(data->conn->proto.smtpc.pp.overflow)
     return CURLE_WEIRD_SERVER_REPLY;
 
   if(smtpcode != 220) {
@@ -884,14 +883,14 @@ static CURLcode smtp_state_ehlo_resp(struct Curl_easy *data,
 {
   CURLcode result = CURLE_OK;
   struct smtp_conn *smtpc = &conn->proto.smtpc;
-  const char *line = data->state.buffer;
-  size_t len = strlen(line);
+  const char *line = Curl_dyn_ptr(&smtpc->pp.recvbuf);
+  size_t len = smtpc->pp.nfinal;
 
   (void)instate; /* no use for this yet */
 
   if(smtpcode/100 != 2 && smtpcode != 1) {
     if(data->set.use_ssl <= CURLUSESSL_TRY
-       || Curl_conn_is_ssl(data, FIRSTSOCKET))
+       || Curl_conn_is_ssl(conn, FIRSTSOCKET))
       result = smtp_perform_helo(data, conn);
     else {
       failf(data, "Remote access denied: %d", smtpcode);
@@ -956,7 +955,7 @@ static CURLcode smtp_state_ehlo_resp(struct Curl_easy *data,
     }
 
     if(smtpcode != 1) {
-      if(data->set.use_ssl && !Curl_conn_is_ssl(data, FIRSTSOCKET)) {
+      if(data->set.use_ssl && !Curl_conn_is_ssl(conn, FIRSTSOCKET)) {
         /* We don't have a SSL/TLS connection yet, but SSL is requested */
         if(smtpc->tls_supported)
           /* Switch to TLS connection now */
@@ -994,7 +993,7 @@ static CURLcode smtp_state_helo_resp(struct Curl_easy *data, int smtpcode,
   }
   else
     /* End of connect phase */
-    state(data, SMTP_STOP);
+    smtp_state(data, SMTP_STOP);
 
   return result;
 }
@@ -1015,7 +1014,7 @@ static CURLcode smtp_state_auth_resp(struct Curl_easy *data,
   if(!result)
     switch(progress) {
     case SASL_DONE:
-      state(data, SMTP_STOP);  /* Authenticated */
+      smtp_state(data, SMTP_STOP);  /* Authenticated */
       break;
     case SASL_IDLE:            /* No mechanism left after cancellation */
       failf(data, "Authentication cancelled");
@@ -1034,8 +1033,8 @@ static CURLcode smtp_state_command_resp(struct Curl_easy *data, int smtpcode,
 {
   CURLcode result = CURLE_OK;
   struct SMTP *smtp = data->req.p.smtp;
-  char *line = data->state.buffer;
-  size_t len = strlen(line);
+  char *line = Curl_dyn_ptr(&data->conn->proto.smtpc.pp.recvbuf);
+  size_t len = data->conn->proto.smtpc.pp.nfinal;
 
   (void)instate; /* no use for this yet */
 
@@ -1045,12 +1044,8 @@ static CURLcode smtp_state_command_resp(struct Curl_easy *data, int smtpcode,
     result = CURLE_WEIRD_SERVER_REPLY;
   }
   else {
-    /* Temporarily add the LF character back and send as body to the client */
-    if(!data->req.no_body) {
-      line[len] = '\n';
-      result = Curl_client_write(data, CLIENTWRITE_BODY, line, len + 1);
-      line[len] = '\0';
-    }
+    if(!data->req.no_body)
+      result = Curl_client_write(data, CLIENTWRITE_BODY, line, len);
 
     if(smtpcode != 1) {
       if(smtp->rcpt) {
@@ -1062,11 +1057,11 @@ static CURLcode smtp_state_command_resp(struct Curl_easy *data, int smtpcode,
         }
         else
           /* End of DO phase */
-          state(data, SMTP_STOP);
+          smtp_state(data, SMTP_STOP);
       }
       else
         /* End of DO phase */
-        state(data, SMTP_STOP);
+        smtp_state(data, SMTP_STOP);
     }
   }
 
@@ -1143,7 +1138,7 @@ static CURLcode smtp_state_rcpt_resp(struct Curl_easy *data,
         result = Curl_pp_sendf(data, &conn->proto.smtpc.pp, "%s", "DATA");
 
         if(!result)
-          state(data, SMTP_DATA);
+          smtp_state(data, SMTP_DATA);
       }
     }
   }
@@ -1170,7 +1165,7 @@ static CURLcode smtp_state_data_resp(struct Curl_easy *data, int smtpcode,
     Curl_setup_transfer(data, -1, -1, FALSE, FIRSTSOCKET);
 
     /* End of DO phase */
-    state(data, SMTP_STOP);
+    smtp_state(data, SMTP_STOP);
   }
 
   return result;
@@ -1190,7 +1185,7 @@ static CURLcode smtp_state_postdata_resp(struct Curl_easy *data,
     result = CURLE_WEIRD_SERVER_REPLY;
 
   /* End of DONE phase */
-  state(data, SMTP_STOP);
+  smtp_state(data, SMTP_STOP);
 
   return result;
 }
@@ -1269,10 +1264,9 @@ static CURLcode smtp_statemachine(struct Curl_easy *data,
       break;
 
     case SMTP_QUIT:
-      /* fallthrough, just stop! */
     default:
       /* internal error */
-      state(data, SMTP_STOP);
+      smtp_state(data, SMTP_STOP);
       break;
     }
   } while(!result && smtpc->state != SMTP_STOP && Curl_pp_moredata(pp));
@@ -1288,7 +1282,9 @@ static CURLcode smtp_multi_statemach(struct Curl_easy *data, bool *done)
   struct smtp_conn *smtpc = &conn->proto.smtpc;
 
   if((conn->handler->flags & PROTOPT_SSL) && !smtpc->ssldone) {
-    result = Curl_conn_connect(data, FIRSTSOCKET, FALSE, &smtpc->ssldone);
+    bool ssldone = FALSE;
+    result = Curl_conn_connect(data, FIRSTSOCKET, FALSE, &ssldone);
+    smtpc->ssldone = ssldone;
     if(result || !smtpc->ssldone)
       return result;
   }
@@ -1319,7 +1315,7 @@ static CURLcode smtp_init(struct Curl_easy *data)
   CURLcode result = CURLE_OK;
   struct SMTP *smtp;
 
-  smtp = data->req.p.smtp = calloc(sizeof(struct SMTP), 1);
+  smtp = data->req.p.smtp = calloc(1, sizeof(struct SMTP));
   if(!smtp)
     result = CURLE_OUT_OF_MEMORY;
 
@@ -1361,8 +1357,7 @@ static CURLcode smtp_connect(struct Curl_easy *data, bool *done)
   Curl_sasl_init(&smtpc->sasl, data, &saslsmtp);
 
   /* Initialise the pingpong layer */
-  Curl_pp_setup(pp);
-  Curl_pp_init(data, pp);
+  Curl_pp_init(pp);
 
   /* Parse the URL options */
   result = smtp_parse_url_options(conn);
@@ -1375,7 +1370,7 @@ static CURLcode smtp_connect(struct Curl_easy *data, bool *done)
     return result;
 
   /* Start off waiting for the server greeting response */
-  state(data, SMTP_SERVERGREET);
+  smtp_state(data, SMTP_SERVERGREET);
 
   result = smtp_multi_statemach(data, done);
 
@@ -1415,7 +1410,7 @@ static CURLcode smtp_done(struct Curl_easy *data, CURLcode status,
     result = status;         /* use the already set error code */
   }
   else if(!data->set.connect_only && data->set.mail_rcpt &&
-          (data->set.upload || data->set.mimepost.kind)) {
+          (data->state.upload || data->set.mimepost.kind)) {
     /* Calculate the EOB taking into account any terminating CRLF from the
        previous line of the email or the CRLF of the DATA command when there
        is "no mail data". RFC-5321, sect. 4.1.1.4.
@@ -1457,7 +1452,7 @@ static CURLcode smtp_done(struct Curl_easy *data, CURLcode status,
       free(eob);
     }
 
-    state(data, SMTP_POSTDATA);
+    smtp_state(data, SMTP_POSTDATA);
 
     /* Run the state-machine */
     result = smtp_block_statemach(data, conn, FALSE);
@@ -1507,7 +1502,7 @@ static CURLcode smtp_perform(struct Curl_easy *data, bool *connected,
   smtp->eob = 2;
 
   /* Start the first command in the DO phase */
-  if((data->set.upload || data->set.mimepost.kind) && data->set.mail_rcpt)
+  if((data->state.upload || data->set.mimepost.kind) && data->set.mail_rcpt)
     /* MAIL transfer */
     result = smtp_perform_mail(data);
   else
@@ -1540,6 +1535,8 @@ static CURLcode smtp_perform(struct Curl_easy *data, bool *connected,
 static CURLcode smtp_do(struct Curl_easy *data, bool *done)
 {
   CURLcode result = CURLE_OK;
+  DEBUGASSERT(data);
+  DEBUGASSERT(data->conn);
   *done = FALSE; /* default to false */
 
   /* Parse the custom request */

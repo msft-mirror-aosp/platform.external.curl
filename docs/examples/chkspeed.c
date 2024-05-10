@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -126,15 +126,17 @@ int main(int argc, char *argv[])
             default:
               fprintf(stderr, "\r%s: invalid parameter %s\n",
                       appname, *argv + 3);
-              exit(1);
+              return 1;
             }
             break;
           }
-          /* FALLTHROUGH */
+          fprintf(stderr, "\r%s: invalid or unknown option %s\n",
+                  appname, *argv);
+          return 1;
         default:
           fprintf(stderr, "\r%s: invalid or unknown option %s\n",
                   appname, *argv);
-          exit(1);
+          return 1;
         }
       }
       else {

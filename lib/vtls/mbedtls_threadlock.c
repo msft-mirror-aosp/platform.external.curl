@@ -5,8 +5,8 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 2013 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
- * Copyright (C) 2010, 2011, Hoi-Ho Chan, <hoiho.chan@gmail.com>
+ * Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) Hoi-Ho Chan, <hoiho.chan@gmail.com>
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -51,7 +51,7 @@ int Curl_mbedtlsthreadlock_thread_setup(void)
 {
   int i;
 
-  mutex_buf = calloc(NUMT * sizeof(MBEDTLS_MUTEX_T), 1);
+  mutex_buf = calloc(1, NUMT * sizeof(MBEDTLS_MUTEX_T));
   if(!mutex_buf)
     return 0;     /* error, no number of threads defined */
 

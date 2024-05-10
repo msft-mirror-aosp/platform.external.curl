@@ -5,7 +5,7 @@
 #                            | (__| |_| |  _ <| |___
 #                             \___|\___/|_| \_\_____|
 #
-# Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+# Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
 #
 # This software is licensed as described in the file COPYING, which
 # you should have received as part of this distribution. The terms
@@ -22,8 +22,8 @@
 #
 ###########################################################################
 
-EXTRA_DIST = updatemanpages.pl coverage.sh completion.pl firefox-db2pem.sh \
- checksrc.pl mk-ca-bundle.pl
+EXTRA_DIST = coverage.sh completion.pl firefox-db2pem.sh checksrc.pl    \
+ mk-ca-bundle.pl schemetable.c cd2nroff nroff2cd cdall cd2cd
 
 ZSH_FUNCTIONS_DIR = @ZSH_FUNCTIONS_DIR@
 FISH_FUNCTIONS_DIR = @FISH_FUNCTIONS_DIR@

@@ -7,7 +7,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -40,7 +40,7 @@ extern int easysrc_slist_count; /* Number of curl_slist variables */
 extern CURLcode easysrc_init(void);
 extern CURLcode easysrc_add(struct slist_wc **plist, const char *bupf);
 extern CURLcode easysrc_addf(struct slist_wc **plist,
-                             const char *fmt, ...);
+                             const char *fmt, ...) CURL_PRINTF(2, 3);
 extern CURLcode easysrc_perform(void);
 extern CURLcode easysrc_cleanup(void);
 
@@ -51,7 +51,7 @@ void dumpeasysrc(struct GlobalConfig *config);
 #define easysrc_init() CURLE_OK
 #define easysrc_cleanup()
 #define dumpeasysrc(x)
-#define easysrc_perform(x) CURLE_OK
+#define easysrc_perform() CURLE_OK
 
 #endif /* CURL_DISABLE_LIBCURL_OPTION */
 

@@ -17,7 +17,7 @@
   For a long time, the only spec explaining how to use cookies was the
   original [Netscape spec from 1994](https://curl.se/rfc/cookie_spec.html).
 
-  In 2011, [RFC6265](https://www.ietf.org/rfc/rfc6265.txt) was finally
+  In 2011, [RFC 6265](https://www.ietf.org/rfc/rfc6265.txt) was finally
   published and details how cookies work within HTTP. In 2016, an update which
   added support for prefixes was
   [proposed](https://datatracker.ietf.org/doc/html/draft-ietf-httpbis-cookie-prefixes-00),
@@ -26,13 +26,32 @@
   to deprecate modification of 'secure' cookies from non-secure origins. Both
   of these drafts have been incorporated into a proposal to
   [replace](https://datatracker.ietf.org/doc/html/draft-ietf-httpbis-rfc6265bis-11)
-  RFC6265. Cookie prefixes and secure cookie modification protection has been
+  RFC 6265. Cookie prefixes and secure cookie modification protection has been
   implemented by curl.
 
   curl considers `http://localhost` to be a *secure context*, meaning that it
   will allow and use cookies marked with the `secure` keyword even when done
   over plain HTTP for this host. curl does this to match how popular browsers
   work with secure cookies.
+
+## Super cookies
+
+  A single cookie can be set for a domain that matches multiple hosts. Like if
+  set for `example.com` it gets sent to both `aa.example.com` as well as
+  `bb.example.com`.
+
+  A challenge with this concept is that there are certain domains for which
+  cookies should not be allowed at all, because they are *Public
+  Suffixes*. Similarly, a client never accepts cookies set directly for the
+  top-level domain like for example `.com`. Cookies set for *too broad*
+  domains are generally referred to as *super cookies*.
+
+  If curl is built with PSL (**Public Suffix List**) support, it detects and
+  discards cookies that are specified for such suffix domains that should not
+  be allowed to have cookies.
+
+  if curl is *not* built with PSL support, it has no ability to stop super
+  cookies.
 
 ## Cookies saved to disk
 
@@ -52,7 +71,9 @@
 ## Cookie file format
 
   The cookie file format is text based and stores one cookie per line. Lines
-  that start with `#` are treated as comments.
+  that start with `#` are treated as comments. An exception is lines that
+  start with `#HttpOnly_`, which is a prefix for cookies that have the
+  `HttpOnly` attribute set.
 
   Each line that specifies a single cookie consists of seven text fields
   separated with TAB characters. A valid line must end with a newline
