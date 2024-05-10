@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -29,7 +29,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
-#ifndef WIN32
+#ifndef _WIN32
 #  include <unistd.h>
 #endif
 #include <curl/curl.h>
@@ -95,7 +95,7 @@ static size_t write_cb(char *data, size_t n, size_t l, void *userp)
   return n*l;
 }
 
-static void add_transfer(CURLM *cm, int i, int *left)
+static void add_transfer(CURLM *cm, unsigned int i, int *left)
 {
   CURL *eh = curl_easy_init();
   curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, write_cb);

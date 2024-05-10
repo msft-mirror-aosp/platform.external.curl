@@ -1,5 +1,5 @@
 <!--
-Copyright (C) 1998 - 2022 Daniel Stenberg, <daniel@haxx.se>, et al.
+Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
 
 SPDX-License-Identifier: curl
 -->
@@ -61,9 +61,8 @@ distribution terms.
 
 ## Backers
 
-Thank you to all our backers! 🙏 [[Become a backer](https://opencollective.com/curl#backer)]
+Thank you to all our backers! 🙏 [Become a backer](https://opencollective.com/curl#section-contribute).
 
 ## Sponsors
 
 Support this project by becoming a [sponsor](https://curl.se/sponsors.html).
-

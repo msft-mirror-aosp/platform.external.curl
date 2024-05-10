@@ -7,7 +7,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -29,6 +29,8 @@
 struct getout *new_getout(struct OperationConfig *config);
 
 ParameterError file2string(char **bufp, FILE *file);
+
+#define MAX_FILE2MEMORY (1024*1024*1024) /* big enough ? */
 
 ParameterError file2memory(char **bufp, size_t *size, FILE *file);
 

@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -72,8 +72,6 @@ static const struct category_descriptors categories[] = {
    CURLHELP_VERBOSE},
   {NULL, NULL, CURLHELP_HIDDEN}
 };
-
-extern const struct helptxt helptext[];
 
 
 static void print_category(curlhelp_t category)
@@ -151,10 +149,21 @@ void tool_help(char *category)
   free(category);
 }
 
+static bool is_debug(void)
+{
+  const char *const *builtin;
+  for(builtin = feature_names; *builtin; ++builtin)
+    if(curl_strequal("debug", *builtin))
+      return TRUE;
+  return FALSE;
+}
 
 void tool_version_info(void)
 {
   const char *const *builtin;
+  if(is_debug())
+    fprintf(tool_stderr, "WARNING: this libcurl is Debug-enabled, "
+            "do not use in production\n\n");
 
   printf(CURL_ID "%s\n", curl_version());
 #ifdef CURL_PATCHSTAMP
@@ -164,12 +173,30 @@ void tool_version_info(void)
   printf("Release-Date: %s\n", LIBCURL_TIMESTAMP);
 #endif
   if(built_in_protos[0]) {
+    const char *insert = NULL;
+    /* we have ipfs and ipns support if libcurl has http support */
+    for(builtin = built_in_protos; *builtin; ++builtin) {
+      if(insert) {
+        /* update insertion so ipfs will be printed in alphabetical order */
+        if(strcmp(*builtin, "ipfs") < 0)
+          insert = *builtin;
+        else
+          break;
+      }
+      else if(!strcmp(*builtin, "http")) {
+        insert = *builtin;
+      }
+    }
     printf("Protocols:");
     for(builtin = built_in_protos; *builtin; ++builtin) {
       /* Special case: do not list rtmp?* protocols.
          They may only appear together with "rtmp" */
       if(!curl_strnequal(*builtin, "rtmp", 4) || !builtin[0][4])
         printf(" %s", *builtin);
+      if(insert && insert == *builtin) {
+        printf(" ipfs ipns");
+        insert = NULL;
+      }
     }
     puts(""); /* newline */
   }

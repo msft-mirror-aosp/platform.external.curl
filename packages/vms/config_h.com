@@ -1,7 +1,5 @@
 $! File: config_h.com
 $!
-$! $Id: config_h.com,v 1.1.1.1 2012/12/02 19:25:21 wb8tyw Exp $
-$!
 $! This procedure attempts to figure out how to build a config.h file
 $! for the current project.
 $!
@@ -28,7 +26,7 @@ $!
 $! This procedure may not guess the options correctly for all architectures,
 $! and is a work in progress.
 $!
-$! Copyright 2013 - 2022, John Malmberg
+$! Copyright (C) John Malmberg
 $!
 $! Permission to use, copy, modify, and/or distribute this software for any
 $! purpose with or without fee is hereby granted, provided that the above
@@ -44,15 +42,6 @@ $! OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 $!
 $! SPDX-License-Identifier: ISC
 $!
-$! 15-Jan-2001	J. Malmberg	Original
-$! 29-Apr-2001	J. Malmberg	Also look for config.*in* in a [.include]
-$!				subdirectory
-$! 30-Apr-2001	J. Malmberg	Update for SAMBA checks
-$! 09-Apr-2005	J. Malmberg	Update for RSYNC and large file.
-$! 29-Sep-2011	J. Malmberg	Update for Bash 4.2
-$! 01-Mar-2012	J. Malmberg	Warn about getcwd(0,0)
-$! 21-Dec-2012	J. Malmberg	Update for gawk
-$! 29-Dec-2012	J. Malmberg	Update for curl
 $!============================================================================
 $!
 $ss_normal = 1
@@ -1394,38 +1383,6 @@ $		    if (key2 .eqs. "HAVE_GSSAPI")
 $		    then
 $			write tf "#ifndef ''key2'"
 $			write tf "#define ''key2' 1"
-$			write tf "#endif"
-$			goto cfgh_in_loop1
-$		    endif
-$!
-$!		    This is really do we have the newer MIT Kerberos
-$!----------------------------------------------------------------------
-$		    if (key2 .eqs. "HAVE_GSSMIT")
-$		    then
-$			if f$search(test_mit) .nes. ""
-$			then
-$			    write tf "#ifndef ''key2'"
-$			    write tf "#define ''key2' 1"
-$			else
-$			    write tf "#ifdef ''key2'"
-$			    write tf "#undef ''key2'"
-$			endif
-$			write tf "#endif"
-$			goto cfgh_in_loop1
-$		    endif
-$!
-$!		    Older MIT looks like Heimdal
-$!------------------------------------------------
-$		    if (key2 .eqs. "HAVE_HEIMDAL")
-$		    then
-$			if f$search(test_mit) .eqs. ""
-$			then
-$			    write tf "#ifndef ''key2'"
-$			    write tf "#define ''key2' 1"
-$			else
-$			    write tf "#ifdef ''key2'"
-$			    write tf "#undef ''key2'"
-$			endif
 $			write tf "#endif"
 $			goto cfgh_in_loop1
 $		    endif

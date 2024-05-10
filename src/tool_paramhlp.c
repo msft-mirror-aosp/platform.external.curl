@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -88,8 +88,6 @@ ParameterError file2string(char **bufp, FILE *file)
   return PARAM_OK;
 }
 
-#define MAX_FILE2MEMORY (1024*1024*1024) /* big enough ? */
-
 ParameterError file2memory(char **bufp, size_t *size, FILE *file)
 {
   if(file) {
@@ -134,11 +132,13 @@ static ParameterError getnum(long *val, const char *str, int base)
   if(str) {
     char *endptr = NULL;
     long num;
+    if(!str[0])
+      return PARAM_BLANK_STRING;
     errno = 0;
     num = strtol(str, &endptr, base);
     if(errno == ERANGE)
       return PARAM_NUMBER_TOO_LARGE;
-    if((endptr != str) && (endptr == str + strlen(str))) {
+    if((endptr != str) && (*endptr == '\0')) {
       *val = num;
       return PARAM_OK;  /* Ok */
     }
@@ -369,7 +369,7 @@ ParameterError proto2num(struct OperationConfig *config,
 
     /* Process token modifiers */
     while(!ISALNUM(*token)) { /* may be NULL if token is all modifiers */
-      switch (*token++) {
+      switch(*token++) {
       case '=':
         action = set;
         break;
@@ -408,7 +408,7 @@ ParameterError proto2num(struct OperationConfig *config,
           break;
         case set:
           protoset[0] = NULL;
-          /* FALLTHROUGH */
+          FALLTHROUGH();
         case allow:
           protoset_set(protoset, p);
           break;
@@ -418,7 +418,7 @@ ParameterError proto2num(struct OperationConfig *config,
            if no protocols are allowed */
         if(action == set)
           protoset[0] = NULL;
-        warnf(config->global, "unrecognized protocol '%s'\n", token);
+        warnf(config->global, "unrecognized protocol '%s'", token);
       }
     }
   }
@@ -566,7 +566,7 @@ int ftpfilemethod(struct OperationConfig *config, const char *str)
   if(curl_strequal("multicwd", str))
     return CURLFTPMETHOD_MULTICWD;
 
-  warnf(config->global, "unrecognized ftp file method '%s', using default\n",
+  warnf(config->global, "unrecognized ftp file method '%s', using default",
         str);
 
   return CURLFTPMETHOD_MULTICWD;
@@ -579,7 +579,7 @@ int ftpcccmethod(struct OperationConfig *config, const char *str)
   if(curl_strequal("active", str))
     return CURLFTPSSL_CCC_ACTIVE;
 
-  warnf(config->global, "unrecognized ftp CCC method '%s', using default\n",
+  warnf(config->global, "unrecognized ftp CCC method '%s', using default",
         str);
 
   return CURLFTPSSL_CCC_PASSIVE;
@@ -594,7 +594,7 @@ long delegation(struct OperationConfig *config, const char *str)
   if(curl_strequal("always", str))
     return CURLGSSAPI_DELEGATION_FLAG;
 
-  warnf(config->global, "unrecognized delegation method '%s', using none\n",
+  warnf(config->global, "unrecognized delegation method '%s', using none",
         str);
 
   return CURLGSSAPI_DELEGATION_NONE;
@@ -665,7 +665,7 @@ CURLcode get_args(struct OperationConfig *config, const size_t i)
   if(!config->useragent) {
     config->useragent = my_useragent();
     if(!config->useragent) {
-      errorf(config->global, "out of memory\n");
+      errorf(config->global, "out of memory");
       result = CURLE_OUT_OF_MEMORY;
     }
   }

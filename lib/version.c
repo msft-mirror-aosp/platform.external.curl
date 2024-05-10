@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -24,18 +24,22 @@
 
 #include "curl_setup.h"
 
+#ifdef USE_NGHTTP2
+#include <nghttp2/nghttp2.h>
+#endif
+
 #include <curl/curl.h>
 #include "urldata.h"
 #include "vtls/vtls.h"
 #include "http2.h"
 #include "vssh/ssh.h"
-#include "quic.h"
+#include "vquic/vquic.h"
 #include "curl_printf.h"
 #include "easy_lock.h"
 
 #ifdef USE_ARES
 #  if defined(CURL_STATICLIB) && !defined(CARES_STATICLIB) &&   \
-  defined(WIN32)
+  defined(_WIN32)
 #    define CARES_STATICLIB
 #  endif
 #  include <ares.h>
@@ -58,7 +62,15 @@
 #endif
 
 #ifdef HAVE_BROTLI
+#if defined(__GNUC__)
+/* Ignore -Wvla warnings in brotli headers */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wvla"
+#endif
 #include <brotli/decode.h>
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
 #endif
 
 #ifdef HAVE_ZSTD
@@ -199,8 +211,12 @@ char *curl_version(void)
 #endif
 
 #ifdef USE_LIBPSL
-  msnprintf(psl_version, sizeof(psl_version), "libpsl/%s", psl_get_version());
-  src[i++] = psl_version;
+  {
+    int num = psl_check_version_number(0);
+    msnprintf(psl_version, sizeof(psl_version), "libpsl/%d.%d.%d",
+              num >> 16, (num >> 8) & 0xff, num & 0xff);
+    src[i++] = psl_version;
+  }
 #endif
 
 #ifdef USE_SSH
@@ -288,7 +304,7 @@ char *curl_version(void)
    protocol line has its own #if line to make things easier on the eye.
  */
 
-static const char * const protocols[] = {
+static const char * const supported_protocols[] = {
 #ifndef CURL_DISABLE_DICT
   "dict",
 #endif
@@ -353,8 +369,7 @@ static const char * const protocols[] = {
 #ifdef USE_SSH
   "sftp",
 #endif
-#if !defined(CURL_DISABLE_SMB) && defined(USE_CURL_NTLM_CORE) && \
-   (SIZEOF_CURL_OFF_T > 4)
+#if !defined(CURL_DISABLE_SMB) && defined(USE_CURL_NTLM_CORE)
   "smb",
 #  ifdef USE_SSL
   "smbs",
@@ -398,7 +413,8 @@ static int idn_present(curl_version_info_data *info)
 #define idn_present     NULL
 #endif
 
-#if defined(USE_SSL) && !defined(CURL_DISABLE_PROXY)
+#if defined(USE_SSL) && !defined(CURL_DISABLE_PROXY) && \
+  !defined(CURL_DISABLE_HTTP)
 static int https_proxy_present(curl_version_info_data *info)
 {
   (void) info;
@@ -443,13 +459,14 @@ static const struct feat features_table[] = {
 #ifndef CURL_DISABLE_HSTS
   FEATURE("HSTS",        NULL,                CURL_VERSION_HSTS),
 #endif
-#if defined(USE_NGHTTP2) || defined(USE_HYPER)
+#if defined(USE_NGHTTP2)
   FEATURE("HTTP2",       NULL,                CURL_VERSION_HTTP2),
 #endif
 #if defined(ENABLE_QUIC)
   FEATURE("HTTP3",       NULL,                CURL_VERSION_HTTP3),
 #endif
-#if defined(USE_SSL) && !defined(CURL_DISABLE_PROXY)
+#if defined(USE_SSL) && !defined(CURL_DISABLE_PROXY) && \
+  !defined(CURL_DISABLE_HTTP)
   FEATURE("HTTPS-proxy", https_proxy_present, CURL_VERSION_HTTPS_PROXY),
 #endif
 #if defined(USE_LIBIDN2) || defined(USE_WIN32_IDN)
@@ -499,7 +516,7 @@ static const struct feat features_table[] = {
 #ifdef CURLDEBUG
   FEATURE("TrackMemory", NULL,                CURL_VERSION_CURLDEBUG),
 #endif
-#if defined(WIN32) && defined(UNICODE) && defined(_UNICODE)
+#if defined(_WIN32) && defined(UNICODE) && defined(_UNICODE)
   FEATURE("Unicode",     NULL,                CURL_VERSION_UNICODE),
 #endif
 #ifdef USE_UNIX_SOCKETS
@@ -524,7 +541,7 @@ static curl_version_info_data version_info = {
   NULL, /* ssl_version */
   0,    /* ssl_version_num, this is kept at zero */
   NULL, /* zlib_version */
-  protocols,
+  supported_protocols,
   NULL, /* c-ares version */
   0,    /* c-ares version numerical */
   NULL, /* libidn version */
