@@ -24,7 +24,8 @@
 #include "curlcheck.h"
 #include "curl_get_line.h"
 
-#define TESTINPUT "log/curl_get_line2101"
+#if !defined(CURL_DISABLE_COOKIES) || !defined(CURL_DISABLE_ALTSVC) ||  \
+  !defined(CURL_DISABLE_HSTS) || !defined(CURL_DISABLE_NETRC)
 
 /* The test XML does not supply a way to write files without newlines
  * so we write our own
@@ -46,6 +47,7 @@ static CURLcode unit_stop(void)
 }
 
 #ifdef __GNUC__
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Woverlength-strings"
 #endif
 
@@ -81,7 +83,6 @@ static const char *filecontents[] = {
 
 
 UNITTEST_START
-{
   size_t i;
   for(i = 0; i < NUMTESTS; i++) {
     FILE *fp;
@@ -89,15 +90,15 @@ UNITTEST_START
     int len = 4096;
     char *line;
 
-    fp = fopen(TESTINPUT, "wb");
+    fp = fopen(arg, "wb");
     abort_unless(fp != NULL, "Cannot open testfile");
     fwrite(filecontents[i], 1, strlen(filecontents[i]), fp);
     fclose(fp);
 
-    fp = fopen(TESTINPUT, "rb");
+    fp = fopen(arg, "rb");
     abort_unless(fp != NULL, "Cannot open testfile");
 
-    fprintf(stderr, "Test %d...", i);
+    fprintf(stderr, "Test %zd...", i);
     switch(i) {
       case 0:
         line = Curl_get_line(buf, len, fp);
@@ -159,6 +160,21 @@ UNITTEST_START
     fclose(fp);
     fprintf(stderr, "OK\n");
   }
-  return 0;
-}
 UNITTEST_STOP
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+
+#else
+static CURLcode unit_setup(void)
+{
+  return CURLE_OK;
+}
+static void unit_stop(void)
+{
+}
+UNITTEST_START
+UNITTEST_STOP
+
+#endif

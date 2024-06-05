@@ -45,11 +45,11 @@ ipv6
 <server>
 http-ipv6
 </server>
- <name>
+<name>
 HTTP receive cookies over IPV6
- </name>
- <command>
--c log/jar%TESTNUMBER -g http://%HOST6IP:%HTTP6PORT/path/%TESTNUMBER0001 http://%HOST6IP:%HTTP6PORT/path/%TESTNUMBER0002
+</name>
+<command>
+-c %LOGDIR/jar%TESTNUMBER -g http://%HOST6IP:%HTTP6PORT/path/%TESTNUMBER0001 http://%HOST6IP:%HTTP6PORT/path/%TESTNUMBER0002
 </command>
 </client>
 

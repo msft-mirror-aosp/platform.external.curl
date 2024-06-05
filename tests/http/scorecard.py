@@ -28,13 +28,12 @@ import argparse
 import json
 import logging
 import os
+import re
 import sys
-from datetime import datetime
 from statistics import mean
-from typing import Dict, Any
+from typing import Dict, Any, Optional, List
 
-from testenv import Env, Httpd, Nghttpx, CurlClient, Caddy, ExecResult
-
+from testenv import Env, Httpd, Nghttpx, CurlClient, Caddy, ExecResult, NghttpxQuic, RunProfile
 
 log = logging.getLogger(__name__)
 
@@ -45,12 +44,18 @@ class ScoreCardException(Exception):
 
 class ScoreCard:
 
-    def __init__(self):
-        self.verbose = 0
-        self.env = None
-        self.httpd = None
-        self.nghttpx = None
-        self.caddy = None
+    def __init__(self, env: Env,
+                 httpd: Optional[Httpd],
+                 nghttpx: Optional[Nghttpx],
+                 caddy: Optional[Caddy],
+                 verbose: int,
+                 curl_verbose: int):
+        self.verbose = verbose
+        self.env = env
+        self.httpd = httpd
+        self.nghttpx = nghttpx
+        self.caddy = caddy
+        self._silent_curl = not curl_verbose
 
     def info(self, msg):
         if self.verbose > 0:
@@ -59,41 +64,20 @@ class ScoreCard:
 
     def handshakes(self, proto: str) -> Dict[str, Any]:
         props = {}
-        sample_size = 10
-        self.info(f'handshaking ')
+        sample_size = 5
+        self.info(f'TLS Handshake\n')
         for authority in [
-            f'{self.env.authority_for(self.env.domain1, proto)}'
+            'curl.se', 'google.com', 'cloudflare.com', 'nghttp2.org'
         ]:
-            self.info('localhost')
-            c_samples = []
-            hs_samples = []
-            errors = []
-            for i in range(sample_size):
-                self.info('.')
-                curl = CurlClient(env=self.env)
-                url = f'https://{authority}/'
-                r = curl.http_download(urls=[url], alpn_proto=proto, no_save=True)
-                if r.exit_code == 0 and len(r.stats) == 1:
-                    c_samples.append(r.stats[0]['time_connect'])
-                    hs_samples.append(r.stats[0]['time_appconnect'])
-                else:
-                    errors.append(f'exit={r.exit_code}')
-            props['localhost'] = {
-                'connect': mean(c_samples),
-                'handshake': mean(hs_samples),
-                'errors': errors
-            }
-        for authority in [
-            'curl.se', 'google.com', 'cloudflare.com', 'nghttp2.org',
-        ]:
+            self.info(f'  {authority}...')
+            props[authority] = {}
             for ipv in ['ipv4', 'ipv6']:
-                self.info(f'{authority}-{ipv}')
+                self.info(f'{ipv}...')
                 c_samples = []
                 hs_samples = []
                 errors = []
                 for i in range(sample_size):
-                    self.info('.')
-                    curl = CurlClient(env=self.env)
+                    curl = CurlClient(env=self.env, silent=self._silent_curl)
                     args = [
                         '--http3-only' if proto == 'h3' else '--http2',
                         f'--{ipv}', f'https://{authority}/'
@@ -104,12 +88,12 @@ class ScoreCard:
                         hs_samples.append(r.stats[0]['time_appconnect'])
                     else:
                         errors.append(f'exit={r.exit_code}')
-                props[f'{authority}-{ipv}'] = {
-                    'connect': mean(c_samples) if len(c_samples) else -1,
-                    'handshake': mean(hs_samples) if len(hs_samples) else -1,
-                    'errors': errors
-                }
-        self.info('\n')
+                    props[authority][f'{ipv}-connect'] = mean(c_samples) \
+                        if len(c_samples) else -1
+                    props[authority][f'{ipv}-handshake'] = mean(hs_samples) \
+                        if len(hs_samples) else -1
+                    props[authority][f'{ipv}-errors'] = errors
+            self.info('ok.\n')
         return props
 
     def _make_docs_file(self, docs_dir: str, fname: str, fsize: int):
@@ -138,85 +122,99 @@ class ScoreCard:
         count = 1
         samples = []
         errors = []
-        self.info(f'{sample_size}x single')
+        profiles = []
+        self.info(f'single...')
         for i in range(sample_size):
-            curl = CurlClient(env=self.env)
-            r = curl.http_download(urls=[url], alpn_proto=proto, no_save=True)
+            curl = CurlClient(env=self.env, silent=self._silent_curl)
+            r = curl.http_download(urls=[url], alpn_proto=proto, no_save=True,
+                                   with_headers=False, with_profile=True)
             err = self._check_downloads(r, count)
             if err:
                 errors.append(err)
             else:
-                samples.append(r.stats[0]['speed_download'])
-        self.info(f'.')
+                total_size = sum([s['size_download'] for s in r.stats])
+                samples.append(total_size / r.duration.total_seconds())
+                profiles.append(r.profile)
         return {
             'count': count,
             'samples': sample_size,
             'speed': mean(samples) if len(samples) else -1,
-            'errors': errors
+            'errors': errors,
+            'stats': RunProfile.AverageStats(profiles),
         }
 
     def transfer_serial(self, url: str, proto: str, count: int):
         sample_size = 1
         samples = []
         errors = []
+        profiles = []
         url = f'{url}?[0-{count - 1}]'
-        self.info(f'{sample_size}x{count} serial')
+        self.info(f'serial...')
         for i in range(sample_size):
-            curl = CurlClient(env=self.env)
-            r = curl.http_download(urls=[url], alpn_proto=proto, no_save=True)
-            self.info(f'.')
+            curl = CurlClient(env=self.env, silent=self._silent_curl)
+            r = curl.http_download(urls=[url], alpn_proto=proto, no_save=True,
+                                   with_headers=False, with_profile=True)
             err = self._check_downloads(r, count)
             if err:
                 errors.append(err)
             else:
-                for s in r.stats:
-                    samples.append(s['speed_download'])
+                total_size = sum([s['size_download'] for s in r.stats])
+                samples.append(total_size / r.duration.total_seconds())
+                profiles.append(r.profile)
         return {
             'count': count,
             'samples': sample_size,
             'speed': mean(samples) if len(samples) else -1,
-            'errors': errors
+            'errors': errors,
+            'stats': RunProfile.AverageStats(profiles),
         }
 
     def transfer_parallel(self, url: str, proto: str, count: int):
         sample_size = 1
         samples = []
         errors = []
+        profiles = []
         url = f'{url}?[0-{count - 1}]'
-        self.info(f'{sample_size}x{count} parallel')
+        self.info(f'parallel...')
         for i in range(sample_size):
-            curl = CurlClient(env=self.env)
-            start = datetime.now()
+            curl = CurlClient(env=self.env, silent=self._silent_curl)
             r = curl.http_download(urls=[url], alpn_proto=proto, no_save=True,
-                                   extra_args=['--parallel'])
+                                   with_headers=False,
+                                   with_profile=True,
+                                   extra_args=['--parallel',
+                                               '--parallel-max', str(count)])
             err = self._check_downloads(r, count)
             if err:
                 errors.append(err)
             else:
-                duration = datetime.now() - start
                 total_size = sum([s['size_download'] for s in r.stats])
-                samples.append(total_size / duration.total_seconds())
+                samples.append(total_size / r.duration.total_seconds())
+                profiles.append(r.profile)
         return {
             'count': count,
             'samples': sample_size,
             'speed': mean(samples) if len(samples) else -1,
-            'errors': errors
+            'errors': errors,
+            'stats': RunProfile.AverageStats(profiles),
         }
 
-    def download_url(self, url: str, proto: str, count: int):
-        self.info(f'  {url}: ')
+    def download_url(self, label: str, url: str, proto: str, count: int):
+        self.info(f'  {count}x{label}: ')
         props = {
             'single': self.transfer_single(url=url, proto=proto, count=10),
-            'serial': self.transfer_serial(url=url, proto=proto, count=count),
-            'parallel': self.transfer_parallel(url=url, proto=proto, count=count),
         }
-        self.info(f'\n')
+        if count > 1:
+            props['serial'] = self.transfer_serial(url=url, proto=proto,
+                                                   count=count)
+            props['parallel'] = self.transfer_parallel(url=url, proto=proto,
+                                                       count=count)
+        self.info(f'ok.\n')
         return props
 
-    def downloads(self, proto: str, test_httpd: bool = True,
-                  test_caddy: bool = True) -> Dict[str, Any]:
+    def downloads(self, proto: str, count: int,
+                  fsizes: List[int]) -> Dict[str, Any]:
         scores = {}
-        if test_httpd:
+        if self.httpd:
             if proto == 'h3':
                 port = self.env.h3_port
                 via = 'nghttpx'
@@ -226,49 +224,131 @@ class ScoreCard:
                 via = 'httpd'
                 descr = f'port {port}'
             self.info(f'{via} downloads\n')
-            self._make_docs_file(docs_dir=self.httpd.docs_dir, fname='score1.data', fsize=1024*1024)
-            url1 = f'https://{self.env.domain1}:{port}/score1.data'
-            self._make_docs_file(docs_dir=self.httpd.docs_dir, fname='score10.data', fsize=10*1024*1024)
-            url10 = f'https://{self.env.domain1}:{port}/score10.data'
-            self._make_docs_file(docs_dir=self.httpd.docs_dir, fname='score100.data', fsize=100*1024*1024)
-            url100 = f'https://{self.env.domain1}:{port}/score100.data'
             scores[via] = {
                 'description': descr,
-                '1MB-local': self.download_url(url=url1, proto=proto, count=50),
-                '10MB-local': self.download_url(url=url10, proto=proto, count=50),
-                '100MB-local': self.download_url(url=url100, proto=proto, count=50),
             }
-        if test_caddy and self.caddy:
+            for fsize in fsizes:
+                label = self.fmt_size(fsize)
+                fname = f'score{label}.data'
+                self._make_docs_file(docs_dir=self.httpd.docs_dir,
+                                     fname=fname, fsize=fsize)
+                url = f'https://{self.env.domain1}:{port}/{fname}'
+                results = self.download_url(label=label, url=url,
+                                            proto=proto, count=count)
+                scores[via][label] = results
+        if self.caddy:
             port = self.caddy.port
             via = 'caddy'
             descr = f'port {port}'
             self.info('caddy downloads\n')
-            self._make_docs_file(docs_dir=self.caddy.docs_dir, fname='score1.data', fsize=1024 * 1024)
-            url1 = f'https://{self.env.domain1}:{port}/score1.data'
-            self._make_docs_file(docs_dir=self.caddy.docs_dir, fname='score10.data', fsize=10 * 1024 * 1024)
-            url10 = f'https://{self.env.domain1}:{port}/score10.data'
-            self._make_docs_file(docs_dir=self.caddy.docs_dir, fname='score100.data', fsize=100 * 1024 * 1024)
-            url100 = f'https://{self.env.domain1}:{port}/score100.data'
             scores[via] = {
                 'description': descr,
-                '1MB-local': self.download_url(url=url1, proto=proto, count=50),
-                '10MB-local': self.download_url(url=url10, proto=proto, count=50),
-                '100MB-local': self.download_url(url=url100, proto=proto, count=50),
+            }
+            for fsize in fsizes:
+                label = self.fmt_size(fsize)
+                fname = f'score{label}.data'
+                self._make_docs_file(docs_dir=self.caddy.docs_dir,
+                                     fname=fname, fsize=fsize)
+                url = f'https://{self.env.domain1}:{port}/{fname}'
+                results = self.download_url(label=label, url=url,
+                                            proto=proto, count=count)
+                scores[via][label] = results
+        return scores
+
+    def do_requests(self, url: str, proto: str, count: int,
+                    max_parallel: int = 1):
+        sample_size = 1
+        samples = []
+        errors = []
+        profiles = []
+        url = f'{url}?[0-{count - 1}]'
+        extra_args = ['--parallel', '--parallel-max', str(max_parallel)] \
+            if max_parallel > 1 else []
+        self.info(f'{max_parallel}...')
+        for i in range(sample_size):
+            curl = CurlClient(env=self.env, silent=self._silent_curl)
+            r = curl.http_download(urls=[url], alpn_proto=proto, no_save=True,
+                                   with_headers=False, with_profile=True,
+                                   extra_args=extra_args)
+            err = self._check_downloads(r, count)
+            if err:
+                errors.append(err)
+            else:
+                for _ in r.stats:
+                    samples.append(count / r.duration.total_seconds())
+                profiles.append(r.profile)
+        return {
+            'count': count,
+            'samples': sample_size,
+            'speed': mean(samples) if len(samples) else -1,
+            'errors': errors,
+            'stats': RunProfile.AverageStats(profiles),
+        }
+
+    def requests_url(self, url: str, proto: str, count: int):
+        self.info(f'  {url}: ')
+        props = {
+            '1': self.do_requests(url=url, proto=proto, count=count),
+            '6': self.do_requests(url=url, proto=proto, count=count,
+                                  max_parallel=6),
+            '25': self.do_requests(url=url, proto=proto, count=count,
+                                   max_parallel=25),
+            '50': self.do_requests(url=url, proto=proto, count=count,
+                                   max_parallel=50),
+            '100': self.do_requests(url=url, proto=proto, count=count,
+                                    max_parallel=100),
+        }
+        self.info(f'ok.\n')
+        return props
+
+    def requests(self, proto: str, req_count) -> Dict[str, Any]:
+        scores = {}
+        if self.httpd:
+            if proto == 'h3':
+                port = self.env.h3_port
+                via = 'nghttpx'
+                descr = f'port {port}, proxying httpd'
+            else:
+                port = self.env.https_port
+                via = 'httpd'
+                descr = f'port {port}'
+            self.info(f'{via} requests\n')
+            self._make_docs_file(docs_dir=self.httpd.docs_dir,
+                                 fname='reqs10.data', fsize=10*1024)
+            url1 = f'https://{self.env.domain1}:{port}/reqs10.data'
+            scores[via] = {
+                'description': descr,
+                'count': req_count,
+                '10KB': self.requests_url(url=url1, proto=proto, count=req_count),
+            }
+        if self.caddy:
+            port = self.caddy.port
+            via = 'caddy'
+            descr = f'port {port}'
+            self.info('caddy requests\n')
+            self._make_docs_file(docs_dir=self.caddy.docs_dir,
+                                 fname='req10.data', fsize=10 * 1024)
+            url1 = f'https://{self.env.domain1}:{port}/req10.data'
+            scores[via] = {
+                'description': descr,
+                'count': req_count,
+                '10KB': self.requests_url(url=url1, proto=proto, count=req_count),
             }
         return scores
 
     def score_proto(self, proto: str,
                     handshakes: bool = True,
-                    downloads: bool = True,
-                    test_httpd: bool = True,
-                    test_caddy: bool = True):
+                    downloads: Optional[List[int]] = None,
+                    download_count: int = 50,
+                    req_count=5000,
+                    requests: bool = True):
         self.info(f"scoring {proto}\n")
         p = {}
         if proto == 'h3':
             p['name'] = 'h3'
             if not self.env.have_h3_curl():
                 raise ScoreCardException('curl does not support HTTP/3')
-            for lib in ['ngtcp2', 'quiche', 'msh3']:
+            for lib in ['ngtcp2', 'quiche', 'msh3', 'nghttp3']:
                 if self.env.curl_uses_lib(lib):
                     p['implementation'] = lib
                     break
@@ -280,6 +360,11 @@ class ScoreCard:
                 if self.env.curl_uses_lib(lib):
                     p['implementation'] = lib
                     break
+        elif proto == 'h1' or proto == 'http/1.1':
+            proto = 'http/1.1'
+            p['name'] = proto
+            p['implementation'] = 'hyper' if self.env.curl_uses_lib('hyper')\
+                else 'native'
         else:
             raise ScoreCardException(f"unknown protocol: {proto}")
 
@@ -288,136 +373,267 @@ class ScoreCard:
         p['version'] = Env.curl_lib_version(p['implementation'])
 
         score = {
-            'curl': self.env.curl_version(),
+            'curl': self.env.curl_fullname(),
             'os': self.env.curl_os(),
             'protocol': p,
         }
         if handshakes:
             score['handshakes'] = self.handshakes(proto=proto)
-        if downloads:
+        if downloads and len(downloads) > 0:
             score['downloads'] = self.downloads(proto=proto,
-                                                test_httpd=test_httpd,
-                                                test_caddy=test_caddy)
+                                                count=download_count,
+                                                fsizes=downloads)
+        if requests:
+            score['requests'] = self.requests(proto=proto, req_count=req_count)
         self.info("\n")
         return score
 
     def fmt_ms(self, tval):
         return f'{int(tval*1000)} ms' if tval >= 0 else '--'
 
-    def fmt_mb(self, val):
-        return f'{val/(1024*1024):0.000f} MB' if val >= 0 else '--'
+    def fmt_size(self, val):
+        if val >= (1024*1024*1024):
+            return f'{val / (1024*1024*1024):0.000f}GB'
+        elif val >= (1024 * 1024):
+            return f'{val / (1024*1024):0.000f}MB'
+        elif val >= 1024:
+            return f'{val / 1024:0.000f}KB'
+        else:
+            return f'{val:0.000f}B'
 
     def fmt_mbs(self, val):
         return f'{val/(1024*1024):0.000f} MB/s' if val >= 0 else '--'
 
+    def fmt_reqs(self, val):
+        return f'{val:0.000f} r/s' if val >= 0 else '--'
+
     def print_score(self, score):
-        print(f'{score["protocol"]["name"].upper()} in curl {score["curl"]} ({score["os"]}) via '
-              f'{score["protocol"]["implementation"]}/{score["protocol"]["version"]} ')
+        print(f'{score["protocol"]["name"].upper()} in {score["curl"]}')
         if 'handshakes' in score:
-            print('Handshakes')
-            print(f'  {"Host":<25} {"Connect":>12} {"Handshake":>12}     {"Errors":<20}')
+            print(f'{"Handshakes":<24} {"ipv4":25} {"ipv6":28}')
+            print(f'  {"Host":<17} {"Connect":>12} {"Handshake":>12} '
+                  f'{"Connect":>12} {"Handshake":>12}     {"Errors":<20}')
             for key, val in score["handshakes"].items():
-                print(f'  {key:<25} {self.fmt_ms(val["connect"]):>12} '''
-                      f'{self.fmt_ms(val["handshake"]):>12}     {"/".join(val["errors"]):<20}')
+                print(f'  {key:<17} {self.fmt_ms(val["ipv4-connect"]):>12} '
+                      f'{self.fmt_ms(val["ipv4-handshake"]):>12} '
+                      f'{self.fmt_ms(val["ipv6-connect"]):>12} '
+                      f'{self.fmt_ms(val["ipv6-handshake"]):>12}     '
+                      f'{"/".join(val["ipv4-errors"] + val["ipv6-errors"]):<20}'
+                      )
         if 'downloads' in score:
-            print('Downloads')
-            for dkey, dval in score["downloads"].items():
-                print(f'  {dkey}: {dval["description"]}')
-                for skey, sval in dval.items():
-                    if isinstance(sval, str):
+            # get the key names of all sizes and measurements made
+            sizes = []
+            measures = []
+            m_names = {}
+            mcol_width = 12
+            mcol_sw = 17
+            for server, server_score in score['downloads'].items():
+                for sskey, ssval in server_score.items():
+                    if isinstance(ssval, str):
                         continue
-                    print(f'    {skey:<13} {"Samples":>10} {"Count":>10} {"Speed":>17}   {"Errors":<20}')
-                    for key, val in sval.items():
-                        print(f'      {key:<11} {val["samples"]:>10} '''
-                              f'{val["count"]:>10} {self.fmt_mbs(val["speed"]):>17}   '
-                              f'{"/".join(val["errors"]):<20}')
+                    if sskey not in sizes:
+                        sizes.append(sskey)
+                    for mkey, mval in server_score[sskey].items():
+                        if mkey not in measures:
+                            measures.append(mkey)
+                            m_names[mkey] = f'{mkey}({mval["count"]}x)'
 
-    def main(self):
-        parser = argparse.ArgumentParser(prog='scorecard', description="""
-            Run a range of tests to give a scorecard for a HTTP protocol
-            'h3' or 'h2' implementation in curl.
-            """)
-        parser.add_argument("-v", "--verbose", action='count', default=0,
-                            help="log more output on stderr")
-        parser.add_argument("-t", "--text", action='store_true', default=False,
-                            help="print text instead of json")
-        parser.add_argument("-d", "--downloads", action='store_true', default=False,
-                            help="evaluate downloads only")
-        parser.add_argument("--httpd", action='store_true', default=False,
-                            help="evaluate httpd server only")
-        parser.add_argument("--caddy", action='store_true', default=False,
-                            help="evaluate caddy server only")
-        parser.add_argument("protocols", nargs='*', help="Name(s) of protocol to score")
-        args = parser.parse_args()
+            print('Downloads')
+            print(f'  {"Server":<8} {"Size":>8}', end='')
+            for m in measures: print(f' {m_names[m]:>{mcol_width}} {"[cpu/rss]":<{mcol_sw}}', end='')
+            print(f' {"Errors":^20}')
 
-        self.verbose = args.verbose
-        if args.verbose > 0:
-            console = logging.StreamHandler()
-            console.setLevel(logging.INFO)
-            console.setFormatter(logging.Formatter(logging.BASIC_FORMAT))
-            logging.getLogger('').addHandler(console)
+            for server in score['downloads']:
+                for size in sizes:
+                    size_score = score['downloads'][server][size]
+                    print(f'  {server:<8} {size:>8}', end='')
+                    errors = []
+                    for key, val in size_score.items():
+                        if 'errors' in val:
+                            errors.extend(val['errors'])
+                    for m in measures:
+                        if m in size_score:
+                            print(f' {self.fmt_mbs(size_score[m]["speed"]):>{mcol_width}}', end='')
+                            s = f'[{size_score[m]["stats"]["cpu"]:>.1f}%'\
+                                f'/{self.fmt_size(size_score[m]["stats"]["rss"])}]'
+                            print(f' {s:<{mcol_sw}}', end='')
+                        else:
+                            print(' '*mcol_width, end='')
+                    if len(errors):
+                        print(f' {"/".join(errors):<20}')
+                    else:
+                        print(f' {"-":^20}')
 
-        protocols = args.protocols if len(args.protocols) else ['h2', 'h3']
-        handshakes = True
-        downloads = True
-        test_httpd = True
-        test_caddy = True
-        if args.downloads:
-            handshakes = False
-        if args.caddy:
-            test_caddy = True
-            test_httpd = False
-        if args.httpd:
-            test_caddy = False
-            test_httpd = True
+        if 'requests' in score:
+            sizes = []
+            measures = []
+            m_names = {}
+            mcol_width = 9
+            mcol_sw = 13
+            for server in score['requests']:
+                server_score = score['requests'][server]
+                for sskey, ssval in server_score.items():
+                    if isinstance(ssval, str) or isinstance(ssval, int):
+                        continue
+                    if sskey not in sizes:
+                        sizes.append(sskey)
+                    for mkey, mval in server_score[sskey].items():
+                        if mkey not in measures:
+                            measures.append(mkey)
+                            m_names[mkey] = f'{mkey}'
 
-        rv = 0
-        self.env = Env()
-        self.env.setup()
-        self.httpd = None
-        self.nghttpx = None
-        self.caddy = None
-        try:
-            self.httpd = Httpd(env=self.env)
-            assert self.httpd.exists(), f'httpd not found: {self.env.httpd}'
-            self.httpd.clear_logs()
-            assert self.httpd.start()
-            if 'h3' in protocols:
-                self.nghttpx = Nghttpx(env=self.env)
-                self.nghttpx.clear_logs()
-                assert self.nghttpx.start()
-            if self.env.caddy:
-                self.caddy = Caddy(env=self.env)
-                self.caddy.clear_logs()
-                assert self.caddy.start()
+            print('Requests, max in parallel')
+            print(f'  {"Server":<8} {"Size":>6} {"Reqs":>6}', end='')
+            for m in measures: print(f' {m_names[m]:>{mcol_width}} {"[cpu/rss]":<{mcol_sw}}', end='')
+            print(f' {"Errors":^10}')
 
-            for p in protocols:
-                score = self.score_proto(proto=p, handshakes=handshakes,
-                                         downloads=downloads,
-                                         test_caddy=test_caddy,
-                                         test_httpd=test_httpd)
-                if args.text:
-                    self.print_score(score)
-                else:
-                    print(json.JSONEncoder(indent=2).encode(score))
+            for server in score['requests']:
+                for size in sizes:
+                    size_score = score['requests'][server][size]
+                    count = score['requests'][server]['count']
+                    print(f'  {server:<8} {size:>6} {count:>6}', end='')
+                    errors = []
+                    for key, val in size_score.items():
+                        if 'errors' in val:
+                            errors.extend(val['errors'])
+                    for m in measures:
+                        if m in size_score:
+                            print(f' {self.fmt_reqs(size_score[m]["speed"]):>{mcol_width}}', end='')
+                            s = f'[{size_score[m]["stats"]["cpu"]:>.1f}%'\
+                                f'/{self.fmt_size(size_score[m]["stats"]["rss"])}]'
+                            print(f' {s:<{mcol_sw}}', end='')
+                        else:
+                            print(' '*mcol_width, end='')
+                    if len(errors):
+                        print(f' {"/".join(errors):<10}')
+                    else:
+                        print(f' {"-":^10}')
 
-        except ScoreCardException as ex:
-            sys.stderr.write(f"ERROR: {str(ex)}\n")
-            rv = 1
-        except KeyboardInterrupt:
-            log.warning("aborted")
-            rv = 1
-        finally:
-            if self.caddy:
-                self.caddy.stop()
-                self.caddy = None
-            if self.nghttpx:
-                self.nghttpx.stop(wait_dead=False)
-            if self.httpd:
-                self.httpd.stop()
-                self.httpd = None
-        sys.exit(rv)
+
+def parse_size(s):
+    m = re.match(r'(\d+)(mb|kb|gb)?', s, re.IGNORECASE)
+    if m is None:
+        raise Exception(f'unrecognized size: {s}')
+    size = int(m.group(1))
+    if not m.group(2):
+        pass
+    elif m.group(2).lower() == 'kb':
+        size *= 1024
+    elif m.group(2).lower() == 'mb':
+        size *= 1024 * 1024
+    elif m.group(2).lower() == 'gb':
+        size *= 1024 * 1024 * 1024
+    return size
+
+
+def main():
+    parser = argparse.ArgumentParser(prog='scorecard', description="""
+        Run a range of tests to give a scorecard for a HTTP protocol
+        'h3' or 'h2' implementation in curl.
+        """)
+    parser.add_argument("-v", "--verbose", action='count', default=1,
+                        help="log more output on stderr")
+    parser.add_argument("-j", "--json", action='store_true',
+                        default=False, help="print json instead of text")
+    parser.add_argument("-H", "--handshakes", action='store_true',
+                        default=False, help="evaluate handshakes only")
+    parser.add_argument("-d", "--downloads", action='store_true',
+                        default=False, help="evaluate downloads")
+    parser.add_argument("--download", action='append', type=str,
+                        default=None, help="evaluate download size")
+    parser.add_argument("--download-count", action='store', type=int,
+                        default=50, help="perform that many downloads")
+    parser.add_argument("-r", "--requests", action='store_true',
+                        default=False, help="evaluate requests")
+    parser.add_argument("--request-count", action='store', type=int,
+                        default=5000, help="perform that many requests")
+    parser.add_argument("--httpd", action='store_true', default=False,
+                        help="evaluate httpd server only")
+    parser.add_argument("--caddy", action='store_true', default=False,
+                        help="evaluate caddy server only")
+    parser.add_argument("--curl-verbose", action='store_true',
+                        default=False, help="run curl with `-v`")
+    parser.add_argument("protocol", default='h2', nargs='?',
+                        help="Name of protocol to score")
+    args = parser.parse_args()
+
+    if args.verbose > 0:
+        console = logging.StreamHandler()
+        console.setLevel(logging.INFO)
+        console.setFormatter(logging.Formatter(logging.BASIC_FORMAT))
+        logging.getLogger('').addHandler(console)
+
+    protocol = args.protocol
+    handshakes = True
+    downloads = [1024 * 1024, 10 * 1024 * 1024, 100 * 1024 * 1024]
+    if args.download is not None:
+        downloads = []
+        for x in args.download:
+            downloads.extend([parse_size(s) for s in x.split(',')])
+    requests = True
+    if args.downloads or args.requests or args.handshakes:
+        handshakes = args.handshakes
+        if not args.downloads:
+            downloads = None
+        requests = args.requests
+
+    test_httpd = protocol != 'h3'
+    test_caddy = True
+    if args.caddy or args.httpd:
+        test_caddy = args.caddy
+        test_httpd = args.httpd
+
+    rv = 0
+    env = Env()
+    env.setup()
+    env.test_timeout = None
+    httpd = None
+    nghttpx = None
+    caddy = None
+    try:
+        if test_httpd:
+            httpd = Httpd(env=env)
+            assert httpd.exists(), \
+                f'httpd not found: {env.httpd}'
+            httpd.clear_logs()
+            assert httpd.start()
+            if 'h3' == protocol:
+                nghttpx = NghttpxQuic(env=env)
+                nghttpx.clear_logs()
+                assert nghttpx.start()
+        if test_caddy and env.caddy:
+            caddy = Caddy(env=env)
+            caddy.clear_logs()
+            assert caddy.start()
+
+        card = ScoreCard(env=env, httpd=httpd, nghttpx=nghttpx, caddy=caddy,
+                         verbose=args.verbose, curl_verbose=args.curl_verbose)
+        score = card.score_proto(proto=protocol,
+                                 handshakes=handshakes,
+                                 downloads=downloads,
+                                 download_count=args.download_count,
+                                 req_count=args.request_count,
+                                 requests=requests)
+        if args.json:
+            print(json.JSONEncoder(indent=2).encode(score))
+        else:
+            card.print_score(score)
+
+    except ScoreCardException as ex:
+        sys.stderr.write(f"ERROR: {str(ex)}\n")
+        rv = 1
+    except KeyboardInterrupt:
+        log.warning("aborted")
+        rv = 1
+    finally:
+        if caddy:
+            caddy.stop()
+        if nghttpx:
+            nghttpx.stop(wait_dead=False)
+        if httpd:
+            httpd.stop()
+    sys.exit(rv)
 
 
 if __name__ == "__main__":
-    ScoreCard().main()
+    main()

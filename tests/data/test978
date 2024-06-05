@@ -31,11 +31,11 @@ Funny-head: yesyes
 <server>
 http
 </server>
- <name>
+<name>
 verify that --stderr works for -w's stderr as well
- </name>
- <command>
-http://%HOSTIP:%HTTPPORT/%TESTNUMBER --stderr log/redir --silent -w '%{stderr}nonsense\n'
+</name>
+<command>
+http://%HOSTIP:%HTTPPORT/%TESTNUMBER --stderr %LOGDIR/redir --silent -w '%{stderr}nonsense\n'
 </command>
 </client>
 
@@ -49,7 +49,7 @@ User-Agent: curl/%VERSION
 Accept: */*
 
 </protocol>
-<file name="log/redir" mode="text">
+<file name="%LOGDIR/redir" mode="text">
 nonsense
 </file>
 </verify>
