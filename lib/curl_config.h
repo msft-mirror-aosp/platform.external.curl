@@ -1,6 +1,9 @@
 /* lib/curl_config.h.  Generated from curl_config.h.in by configure.  */
 /* lib/curl_config.h.in.  Generated from configure.ac by autoheader.  */
 
+/* Ignore c-ares deprecation warnings */
+/* #undef CARES_NO_DEPRECATED */
+
 /* to enable curl debug memory tracking */
 /* #undef CURLDEBUG */
 
@@ -572,14 +575,21 @@
 /* Define to 1 if you have the <socket.h> header file. */
 /* #undef HAVE_SOCKET_H */
 
-/* Define to 1 if you have the `SSL_get_ech_status' function. */
-/* #undef HAVE_SSL_GET_ECH_STATUS */
+/* Define to 1 if you have the `SSL_ech_set1_echconfig' function. */
+/* #undef HAVE_SSL_ECH_SET1_ECHCONFIG */
 
 /* Define to 1 if you have the <ssl.h> header file. */
 /* #undef HAVE_SSL_H */
 
 /* Define to 1 if you have the `SSL_set0_wbio' function. */
 #define HAVE_SSL_SET0_WBIO 1
+
+/* Define to 1 if you have the `SSL_set1_ech_config_list' function. */
+/* #undef HAVE_SSL_SET1_ECH_CONFIG_LIST */
+
+/* Define to 1 if you have the `SSL_set_quic_use_legacy_codepoint' function.
+   */
+/* #undef HAVE_SSL_SET_QUIC_USE_LEGACY_CODEPOINT */
 
 /* Define to 1 if you have the <stdatomic.h> header file. */
 #define HAVE_STDATOMIC_H 1
@@ -704,6 +714,9 @@
 /* Define to 1 if you have the <wolfssh/ssh.h> header file. */
 /* #undef HAVE_WOLFSSH_SSH_H */
 
+/* Define to 1 if you have the `wolfSSL_CTX_GenerateEchConfig' function. */
+/* #undef HAVE_WOLFSSL_CTX_GENERATEECHCONFIG */
+
 /* if you have wolfSSL_DES_ecb_encrypt */
 /* #undef HAVE_WOLFSSL_DES_ECB_ENCRYPT */
 
@@ -742,12 +755,6 @@
 
 /* Define to 1 if _THREAD_SAFE preprocessor symbol must be defined. */
 /* #undef NEED_THREAD_SAFE */
-
-/* Define to enable NTLM delegation to winbind's ntlm_auth helper. */
-/* #undef NTLM_WB_ENABLED */
-
-/* Define absolute filename for winbind's ntlm_auth helper. */
-/* #undef NTLM_WB_FILE */
 
 /* Name of package */
 #define PACKAGE "curl"
@@ -820,10 +827,16 @@
 /* GSASL support enabled */
 /* #undef USE_GSASL */
 
+/* force HTTPS RR support for ECH */
+/* #undef USE_HTTPSRR */
+
 /* if hyper is in use */
 /* #undef USE_HYPER */
 
-/* PSL support enabled */
+/* Define if you want to enable IPv6 support */
+#define USE_IPV6 1
+
+/* if libpsl is in use */
 /* #undef USE_LIBPSL */
 
 /* if librtmp is in use */
@@ -864,6 +877,9 @@
 
 /* if ngtcp2_crypto_wolfssl is in use */
 /* #undef USE_NGTCP2_CRYPTO_WOLFSSL */
+
+/* if ngtcp2 + nghttp3 is in use */
+/* #undef USE_NGTCP2_H3 */
 
 /* Use OpenLDAP-specific code */
 /* #undef USE_OPENLDAP */
