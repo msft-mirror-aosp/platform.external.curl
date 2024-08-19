@@ -67,12 +67,13 @@ jobs:
 
     steps:
       - run: |
+          sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list
           sudo apt-get update
           sudo apt-get install libtool autoconf automake pkg-config stunnel4 ${{ matrix.build.install }}
           sudo python3 -m pip install impacket
         name: 'install prereqs and impacket'
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4
 
       - run: autoreconf -fi
         name: 'autoreconf'
