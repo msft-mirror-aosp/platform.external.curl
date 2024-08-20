@@ -13,7 +13,6 @@ on:
       - '**/*.md'
       - '.azure-pipelines.yml'
       - '.circleci/**'
-      - '.cirrus.yml'
       - 'appveyor.*'
       - 'packages/**'
       - 'plan9/**'
@@ -26,7 +25,6 @@ on:
       - '**/*.md'
       - '.azure-pipelines.yml'
       - '.circleci/**'
-      - '.cirrus.yml'
       - 'appveyor.*'
       - 'packages/**'
       - 'plan9/**'
@@ -41,10 +39,10 @@ concurrency:
 permissions: {}
 
 env:
-  MAKEFLAGS: -j 3
+  MAKEFLAGS: -j 5
 
   # renovate: datasource=github-tags depName=awslabs/aws-lc versioning=semver registryUrl=https://github.com
-  awslc-version: 1.27.0
+  awslc-version: 1.31.0
 
 jobs:
   autoconf:
@@ -83,7 +81,7 @@ jobs:
           cmake --build . --parallel
           cmake --install .
 
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
 
       - run: autoreconf -fi
         name: 'autoreconf'
@@ -91,7 +89,7 @@ jobs:
       - run: |
           mkdir build
           cd build
-          ../configure --enable-warnings --enable-werror --with-openssl=$HOME/awslc
+          ../configure --disable-dependency-tracking --enable-warnings --enable-werror --with-openssl=$HOME/awslc
           cd ..
         name: 'configure out-of-tree'
 
@@ -143,7 +141,7 @@ jobs:
           cmake --build . --parallel
           cmake --install .
 
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
 
       - run: cmake -Bbuild -DCMAKE_UNITY_BUILD=ON -DCURL_WERROR=ON -DOPENSSL_ROOT_DIR=$HOME/awslc -DBUILD_SHARED_LIBS=ON .
         name: 'cmake generate out-of-tree'
