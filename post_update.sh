@@ -88,8 +88,8 @@ CONFIGURE_ARGS=(
   --with-ssl="${T}/external/boringssl"
   --with-zlib
   --with-ca-path="/system/etc/security/cacerts"
-  #Configure script skips the /dev/urandom detection when cross-compiling.
-  --with-random="/dev/urandom"
+
+  --without-libpsl
 
   #While bionic has this, the host libcs don't.
   ac_cv_header_netinet_in6_h=no
