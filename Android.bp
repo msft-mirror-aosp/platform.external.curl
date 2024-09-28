@@ -63,7 +63,10 @@ cc_defaults {
         // Bug: http://b/29823425 Disable -Wvarargs for Clang update to r271374
         "-Wno-varargs",
     ],
-    local_include_dirs: ["include", "lib"],
+    local_include_dirs: [
+        "include",
+        "lib",
+    ],
     multilib: {
         lib32: {
             cflags: [
@@ -96,7 +99,7 @@ cc_library {
         "-Wno-format",
         "-Wformat-security",
     ],
-    srcs:[
+    srcs: [
         "lib/**/*.c",
     ],
     shared_libs: [
@@ -123,6 +126,7 @@ cc_binary {
         "lib/base64.c",
         "lib/dynbuf.c",
     ],
+    exclude_srcs: ["src/tool_hugehelp.c"],
     shared_libs: [
         "libcrypto",
         "libssl",

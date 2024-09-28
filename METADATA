@@ -11,13 +11,13 @@ third_party {
   }
   last_upgrade_date {
     year: 2024
-    month: 8
-    day: 13
+    month: 9
+    day: 24
   }
   homepage: "https://curl.haxx.se/"
   identifier {
     type: "Git"
     value: "https://github.com/curl/curl/"
-    version: "curl-8_9_1"
+    version: "curl-8_10_1"
   }
 }
