@@ -10,7 +10,7 @@
 /* Location of default ca bundle */
 /* #undef CURL_CA_BUNDLE */
 
-/* define "1" to use built in CA store of SSL library */
+/* define "1" to use built-in CA store of SSL library */
 /* #undef CURL_CA_FALLBACK */
 
 /* Location of default ca path */
@@ -22,11 +22,26 @@
 /* disable alt-svc */
 /* #undef CURL_DISABLE_ALTSVC */
 
+/* to disable AWS sig support */
+/* #undef CURL_DISABLE_AWS */
+
+/* to disable basic authentication */
+/* #undef CURL_DISABLE_BASIC_AUTH */
+
+/* to disable bearer authentication */
+/* #undef CURL_DISABLE_BEARER_AUTH */
+
+/* disable local binding support */
+/* #undef CURL_DISABLE_BINDLOCAL */
+
 /* to disable cookies support */
 /* #undef CURL_DISABLE_COOKIES */
 
 /* to disable DICT */
 #define CURL_DISABLE_DICT 1
+
+/* to disable digest authentication */
+/* #undef CURL_DISABLE_DIGEST_AUTH */
 
 /* disable DoH */
 /* #undef CURL_DISABLE_DOH */
@@ -61,6 +76,9 @@
 /* to disable IMAP */
 #define CURL_DISABLE_IMAP 1
 
+/* to disable kerberos authentication */
+/* #undef CURL_DISABLE_KERBEROS_AUTH */
+
 /* to disable LDAP */
 #define CURL_DISABLE_LDAP 1
 
@@ -75,6 +93,9 @@
 
 /* to disable MQTT */
 /* #undef CURL_DISABLE_MQTT */
+
+/* to disable negotiate authentication */
+/* #undef CURL_DISABLE_NEGOTIATE_AUTH */
 
 /* disable netrc parsing */
 /* #undef CURL_DISABLE_NETRC */
@@ -99,6 +120,9 @@
 
 /* to disable RTSP */
 #define CURL_DISABLE_RTSP 1
+
+/* disable SHA-512/256 hash algorithm */
+/* #undef CURL_DISABLE_SHA512_256 */
 
 /* disable DNS shuffling */
 /* #undef CURL_DISABLE_SHUFFLE_DNS */
@@ -132,9 +156,6 @@
 
 /* enable debug build options */
 /* #undef DEBUGBUILD */
-
-/* Define if you want to enable IPv6 support */
-#define ENABLE_IPV6 1
 
 /* Define to the type of arg 2 for gethostname. */
 #define GETHOSTNAME_TYPE_ARG2 size_t
@@ -197,11 +218,17 @@
 /* "Set if getpwuid_r() declaration is missing" */
 /* #undef HAVE_DECL_GETPWUID_R_MISSING */
 
+/* if you have <dirent.h> */
+#define HAVE_DIRENT_H 1
+
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #define HAVE_DLFCN_H 1
 
 /* Define to 1 if you have the <err.h> header file. */
 /* #undef HAVE_ERR_H */
+
+/* Define to 1 if you have the `eventfd' function. */
+#define HAVE_EVENTFD 1
 
 /* Define to 1 if you have the fcntl function. */
 #define HAVE_FCNTL 1
@@ -384,7 +411,10 @@
 /* Define to 1 if you have the `idn2' library (-lidn2). */
 /* #undef HAVE_LIBIDN2 */
 
-/* Define to 1 if using libressl. */
+/* Define to 1 if you have the <libpsl.h> header file. */
+/* #undef HAVE_LIBPSL_H */
+
+/* Define to 1 if using LibreSSL. */
 /* #undef HAVE_LIBRESSL */
 
 /* Define to 1 if you have the <librtmp/rtmp.h> header file. */
@@ -433,7 +463,7 @@
 #define HAVE_NETDB_H 1
 
 /* Define to 1 if you have the <netinet/in6.h> header file. */
-/* #undef HAVE_NETINET_IN6_H */
+/* #undef HAVE_NETINET_IN6_H 1 */
 
 /* Define to 1 if you have the <netinet/in.h> header file. */
 #define HAVE_NETINET_IN_H 1
@@ -463,8 +493,8 @@
    */
 /* #undef HAVE_OLD_GSSMIT */
 
-/* Define to 1 if using OpenSSL 3 or later. */
-/* #undef HAVE_OPENSSL3 */
+/* if you have opendir */
+#define HAVE_OPENDIR 1
 
 /* Define to 1 if you have the <openssl/crypto.h> header file. */
 #define HAVE_OPENSSL_CRYPTO_H 1
@@ -645,6 +675,9 @@
 /* Define to 1 if suseconds_t is an available type. */
 #define HAVE_SUSECONDS_T 1
 
+/* Define to 1 if you have the <sys/eventfd.h> header file. */
+#define HAVE_SYS_EVENTFD_H 1
+
 /* Define to 1 if you have the <sys/filio.h> header file. */
 /* #undef HAVE_SYS_FILIO_H */
 
@@ -699,6 +732,9 @@
 /* Define this if time_t is unsigned */
 /* #undef HAVE_TIME_T_UNSIGNED */
 
+/* Define to 1 if you have the <unicode/uidna.h> header file. */
+/* #undef HAVE_UNICODE_UIDNA_H */
+
 /* Define to 1 if you have the <unistd.h> header file. */
 #define HAVE_UNISTD_H 1
 
@@ -710,6 +746,9 @@
 
 /* Define to 1 if you have the <utime.h> header file. */
 #define HAVE_UTIME_H 1
+
+/* Define to 1 if you have the <uv.h> header file. */
+/* #undef HAVE_UV_H */
 
 /* Define to 1 if you have the <wolfssh/ssh.h> header file. */
 /* #undef HAVE_WOLFSSH_SSH_H */
@@ -777,9 +816,6 @@
 /* Define to the version of this package. */
 #define PACKAGE_VERSION "-"
 
-/* a suitable file to read random data from */
-#define RANDOM_FILE "/dev/urandom"
-
 /* Size of curl_off_t in number of bytes */
 #define SIZEOF_CURL_OFF_T 8
 
@@ -790,7 +826,7 @@
 #define SIZEOF_INT 4
 
 /* Size of long in number of bytes */
-/* #undef SIZEOF_LONG 8 */
+/* #undef SIZEOF_LONG 4 */
 
 /* Size of long long in number of bytes */
 /* #undef SIZEOF_LONG_LONG */
@@ -799,10 +835,10 @@
 /* #undef SIZEOF_OFF_T 8 */
 
 /* Size of size_t in number of bytes */
-/* #undef SIZEOF_SIZE_T 8 */
+/* #undef SIZEOF_SIZE_T 4 */
 
 /* Size of time_t in number of bytes */
-/* #undef SIZEOF_TIME_T 8 */
+/* #undef SIZEOF_TIME_T 4 */
 
 /* Define to 1 if all of the C90 standard headers exist (not just the ones
    required in a freestanding environment). This macro is provided for
@@ -811,6 +847,9 @@
 
 /* if AmiSSL is in use */
 /* #undef USE_AMISSL */
+
+/* if AppleIDN */
+/* #undef USE_APPLE_IDN */
 
 /* Define to enable c-ares support */
 /* #undef USE_ARES */
@@ -842,14 +881,14 @@
 /* if librtmp is in use */
 /* #undef USE_LIBRTMP */
 
-/* if libSSH is in use */
+/* if libssh is in use */
 /* #undef USE_LIBSSH */
 
-/* if libSSH2 is in use */
+/* if libssh2 is in use */
 /* #undef USE_LIBSSH2 */
 
-/* If you want to build curl with the built-in manual */
-#define USE_MANUAL 1
+/* if libuv is in use */
+/* #undef USE_LIBUV */
 
 /* if mbedTLS is enabled */
 /* #undef USE_MBEDTLS */
@@ -887,10 +926,16 @@
 /* if OpenSSL is in use */
 #define USE_OPENSSL 1
 
+/* if openssl quic + nghttp3 is in use */
+/* #undef USE_OPENSSL_H3 */
+
+/* if openssl QUIC is in use */
+/* #undef USE_OPENSSL_QUIC */
+
 /* if quiche is in use */
 /* #undef USE_QUICHE */
 
-/* if rustls is enabled */
+/* if Rustls is enabled */
 /* #undef USE_RUSTLS */
 
 /* to enable Windows native SSL/TLS support */
@@ -911,7 +956,7 @@
 /* Use Unix domain sockets */
 #define USE_UNIX_SOCKETS 1
 
-/* enable websockets support */
+/* enable WebSockets support */
 /* #undef USE_WEBSOCKETS */
 
 /* Define to 1 if you are building a Windows target with crypto API support.
@@ -960,12 +1005,6 @@
 
 /* Type to use in place of in_addr_t when system does not provide it. */
 /* #undef in_addr_t */
-
-/* Define to `__inline__' or `__inline' if that's what the C compiler
-   calls it, or to nothing if 'inline' is not supported under any name.  */
-#ifndef __cplusplus
-/* #undef inline */
-#endif
 
 /* Define to `unsigned int' if <sys/types.h> does not define. */
 /* #undef size_t */

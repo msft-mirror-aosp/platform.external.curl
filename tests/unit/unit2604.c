@@ -45,12 +45,16 @@ struct set {
 UNITTEST_START
 #ifdef USE_SSH
 {
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Woverlength-strings"
+#endif
+
 /* 60 a's */
 #define SA60 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 /* 540 a's */
 #define SA540 SA60 SA60 SA60 SA60 SA60 SA60 SA60 SA60 SA60
   int i;
-  int error = 0;
   size_t too_long = 90720;
   struct set list[] = {
     { "-too-long-", "", "", "", CURLE_TOO_LARGE},
@@ -73,6 +77,10 @@ UNITTEST_START
     { NULL, NULL, NULL, NULL, CURLE_OK }
   };
 
+#ifdef __GNUC__
+#pragma GCC diagnostic warning "-Woverlength-strings"
+#endif
+
   list[0].cp = calloc(1, too_long + 1);
   fail_unless(list[0].cp, "could not alloc too long value");
   memset((void *)list[0].cp, 'a', too_long);
@@ -85,18 +93,18 @@ UNITTEST_START
            list[i].cp, list[i].home, list[i].result);
     if(result != list[i].result) {
       printf("... returned %d\n", result);
-      error++;
+      unitfail++;
     }
     if(!result) {
       if(cp && strcmp(cp, list[i].next)) {
         printf("... cp points to '%s', not '%s' as expected \n",
                cp, list[i].next);
-        error++;
+        unitfail++;
       }
       if(path && strcmp(path, list[i].expect)) {
         printf("... gave '%s', not '%s' as expected \n",
                path, list[i].expect);
-        error++;
+        unitfail++;
       }
       curl_free(path);
 
@@ -104,7 +112,6 @@ UNITTEST_START
   }
 
   free((void *)list[0].cp);
-  return error == 0 ? CURLE_OK : TEST_ERR_FAILURE;
 }
 #endif
 

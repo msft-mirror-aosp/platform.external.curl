@@ -4,7 +4,7 @@
 
 name: Linux wolfSSL
 
-on:
+'on':
   push:
     branches:
       - master
@@ -12,9 +12,7 @@ on:
     paths-ignore:
       - '**/*.md'
       - '**/CMakeLists.txt'
-      - '.azure-pipelines.yml'
       - '.circleci/**'
-      - '.cirrus.yml'
       - 'appveyor.*'
       - 'CMake/**'
       - 'packages/**'
@@ -27,9 +25,7 @@ on:
     paths-ignore:
       - '**/*.md'
       - '**/CMakeLists.txt'
-      - '.azure-pipelines.yml'
       - '.circleci/**'
-      - '.cirrus.yml'
       - 'appveyor.*'
       - 'CMake/**'
       - 'packages/**'
@@ -45,7 +41,7 @@ concurrency:
 permissions: {}
 
 env:
-  MAKEFLAGS: -j 3
+  MAKEFLAGS: -j 5
 
 jobs:
   autotools:
@@ -56,11 +52,11 @@ jobs:
       fail-fast: false
       matrix:
         build:
-          - name: wolfssl (configured with --enable-all)
+          - name: wolfssl (with --enable-all)
             install:
             configure: LDFLAGS="-Wl,-rpath,$HOME/wssl/lib" --with-wolfssl=$HOME/wssl --enable-debug
             wolfssl-configure: --enable-all
-          - name: wolfssl (configured with --enable-opensslextra)
+          - name: wolfssl (with --enable-opensslextra) valgrind
             install: valgrind
             configure: LDFLAGS="-Wl,-rpath,$HOME/wssl/lib" --with-wolfssl=$HOME/wssl --enable-debug
             wolfssl-configure: --enable-opensslextra
@@ -73,7 +69,7 @@ jobs:
           sudo python3 -m pip install impacket
         name: 'install prereqs and impacket'
 
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
 
       - run: |
           source .github/scripts/VERSIONS
@@ -81,14 +77,14 @@ jobs:
           tar -xzf v$WOLFSSL_VER-stable.tar.gz
           cd wolfssl-$WOLFSSL_VER-stable
           ./autogen.sh
-          ./configure --enable-tls13 ${{ matrix.build.wolfssl-configure }} --enable-harden --prefix=$HOME/wssl
+          ./configure --disable-dependency-tracking --enable-tls13 ${{ matrix.build.wolfssl-configure }} --enable-harden --prefix=$HOME/wssl
           make install
         name: 'install wolfssl'
 
       - run: autoreconf -fi
         name: 'autoreconf'
 
-      - run: ./configure --enable-warnings --enable-werror ${{ matrix.build.configure }}
+      - run: ./configure --disable-dependency-tracking --enable-warnings --enable-werror ${{ matrix.build.configure }}
         name: 'configure'
 
       - run: make V=1
@@ -102,5 +98,6 @@ jobs:
 
       - run: make V=1 test-ci
         name: 'run tests'
+        timeout-minutes: ${{ contains(matrix.build.install, 'valgrind') && 30 || 15 }}
         env:
           TFLAGS: "${{ matrix.build.tflags }}"
