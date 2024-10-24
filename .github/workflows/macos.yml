@@ -4,14 +4,13 @@
 
 name: macOS
 
-on:
+'on':
   push:
     branches:
       - master
       - '*/ci'
     paths-ignore:
       - '**/*.md'
-      - '.azure-pipelines.yml'
       - '.circleci/**'
       - 'appveyor.*'
       - 'packages/**'
@@ -23,7 +22,6 @@ on:
       - master
     paths-ignore:
       - '**/*.md'
-      - '.azure-pipelines.yml'
       - '.circleci/**'
       - 'appveyor.*'
       - 'packages/**'
@@ -68,9 +66,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: '!ssl !debug'
+          - name: '!ssl !debug brotli zstd'
             compiler: clang
-            configure: --without-ssl --enable-websockets
+            install: brotli zstd
+            configure: --without-ssl --enable-websockets --with-brotli --with-zstd
             macos-version-min: '10.9'
           - name: '!ssl !debug'
             compiler: gcc-12
@@ -80,9 +79,9 @@ jobs:
             compiler: clang
             configure: --enable-debug --without-ssl --enable-websockets
             macos-version-min: '10.9'
-          - name: '!ssl libssh2'
+          - name: '!ssl libssh2 AppleIDN'
             compiler: clang
-            configure: --enable-debug --with-libssh2=$(brew --prefix libssh2) --without-ssl --enable-websockets
+            configure: --enable-debug --with-libssh2=$(brew --prefix libssh2) --without-ssl --with-apple-idn --enable-websockets
             macos-version-min: '10.9'
           - name: 'OpenSSL libssh c-ares'
             compiler: clang
@@ -131,6 +130,11 @@ jobs:
             compiler: clang
             configure: --enable-debug --with-openssl=$(brew --prefix openssl) --enable-websockets
             macos-version-min: '10.9'
+          - name: 'OpenSSL event-based'
+            compiler: clang
+            configure: --enable-debug --with-openssl=$(brew --prefix openssl) --enable-websockets
+            macos-version-min: '10.9'
+            tflags: -e
           - name: 'OpenSSL torture !FTP'
             compiler: clang
             configure: --enable-debug --disable-shared --disable-threaded-resolver --with-openssl=$(brew --prefix openssl) --enable-websockets
@@ -151,34 +155,14 @@ jobs:
         # while running the tests, for example
         # https://github.com/curl/curl/runs/4095721123?check_suite_focus=true
         run: |
-          echo libtool autoconf automake pkg-config libpsl libssh2 nghttp2 openssl ${{ matrix.install }} | xargs -Ix -n1 echo brew '"x"' > /tmp/Brewfile
+          echo automake libtool pkg-config libpsl libssh2 nghttp2 stunnel ${{ matrix.install }} | xargs -Ix -n1 echo brew '"x"' > /tmp/Brewfile
           while [[ $? == 0 ]]; do for i in 1 2 3; do brew update && brew bundle install --no-lock --file /tmp/Brewfile && break 2 || { echo Error: wait to try again; sleep 10; } done; false Too many retries; done
 
       - name: 'brew unlink openssl'
         run: |
-          case "${{ matrix.install }}" in
-            *openssl*)
-              (
-                cd $(brew --prefix openssl)/lib/pkgconfig/
-                for i in libssl.pc libcrypto.pc; do
-                  sudo cp $i $i.orig
-                  sudo sed s,libdir=$(brew --prefix)'/Cellar/openssl@3/3.3.0$',libdir=$(brew --prefix)/Cellar/openssl@3/3.3.0/lib,g < $i.orig > /tmp/$i
-                  sudo cp /tmp/$i $i
-                  cat $i
-                done
-              )
-              ;;
-            *)
-              if test -d $(brew --prefix)/include/openssl; then
-                brew unlink openssl
-              fi;;
-          esac
-
-      - name: 'pip3 install'
-        run: |
-          python3 -m venv $HOME/venv
-          source $HOME/venv/bin/activate
-          python3 -m pip install impacket
+          if test -d $(brew --prefix)/include/openssl; then
+            brew unlink openssl
+          fi
 
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
 
@@ -189,9 +173,10 @@ jobs:
             grep -h -r -E -o '.+[0-9.]+\.sdk/' "$(dirname "$("${CC}" -print-libgcc-file-name)")/include-fixed" | sed -E 's/^\t+//g' | tr -d '"' | sort -u || true
           which "${CC}"; "${CC}" --version || true
           xcodebuild -version || true
-          xcrun -sdk macosx --show-sdk-path 2>/dev/null || true
+          xcrun --sdk macosx --show-sdk-path 2>/dev/null || true
+          xcrun --sdk macosx --show-sdk-version || true
           echo '::group::macros predefined'; "${CC}" -dM -E - < /dev/null | sort || true; echo '::endgroup::'
-          echo '::group::brew packages preinstalled'; ls -l "$(brew --prefix)/opt"; echo '::endgroup::'
+          echo '::group::brew packages installed'; ls -l "$(brew --prefix)/opt"; echo '::endgroup::'
 
       - name: 'autoreconf'
         run: autoreconf -fi
@@ -215,8 +200,8 @@ jobs:
             CC+=" --target=$(uname -m)-apple-darwin"
           fi
           if [ '${{ matrix.compiler }}' != 'clang' ]; then
-            options+=" --with-sysroot=$(xcrun -sdk macosx --show-sdk-path 2>/dev/null)"
-            CFLAGS+=" --sysroot=$(xcrun -sdk macosx --show-sdk-path 2>/dev/null)"
+            options+=" --with-sysroot=$(xcrun --sdk macosx --show-sdk-path 2>/dev/null)"
+            CFLAGS+=" --sysroot=$(xcrun --sdk macosx --show-sdk-path 2>/dev/null)"
           fi
           mkdir bld && cd bld && ../configure --enable-warnings --enable-werror \
             --disable-dependency-tracking \
@@ -232,6 +217,12 @@ jobs:
           echo '::group::raw'; cat bld/lib/curl_config.h || true; echo '::endgroup::'
           cat bld/lib/curl_config.h | grep -F '#define' | sort || true
 
+      - name: 'build-cert'
+        if: contains(matrix.configure, '--with-secure-transport')
+        run: |
+          make -C bld/tests/certs clean-certs
+          make -C bld/tests/certs build-certs -j1
+
       - name: 'make'
         run: make -C bld V=1
 
@@ -244,9 +235,17 @@ jobs:
       - name: 'make tests'
         run: make -C bld V=1 -C tests
 
+      - name: 'pip3 install'
+        run: |
+          python3 -m venv $HOME/venv
+          source $HOME/venv/bin/activate
+          python3 -m pip install impacket
+
       - name: 'run tests'
+        timeout-minutes: 20
         run: |
           export TFLAGS='${{ matrix.tflags }} -j10'
+          TFLAGS+=' ~2037 ~2041'  # flaky
           if [[ '${{ matrix.compiler }}' = 'gcc'* ]]; then
             TFLAGS+=' ~RTSP'  # 567 568 569 570 571 572 577 689 3100
             TFLAGS+=' ~1156 ~1539'  # HTTP Content-Range, Content-Length
@@ -257,6 +256,11 @@ jobs:
               TFLAGS+=' ~2402 ~2404'  # non-SecureTransport + nghttp2
             fi
           fi
+          if [[ '${{ matrix.configure }}' = *'--with-secure-transport'* ]]; then
+            TFLAGS+=' ~313'  # SecureTransport does not support crl file
+            TFLAGS+=' ~1631 ~1632'  # SecureTransport is not able to shutdown ftp over https gracefully yet
+          fi
+          PATH="$HOME/venv/bin:$PATH"
           rm -f $HOME/.curlrc
           make -C bld V=1 test-ci
 
@@ -276,24 +280,24 @@ jobs:
             install: gsasl
             generate: -DOPENSSL_ROOT_DIR=$(brew --prefix openssl) -DCURL_USE_GSASL=ON -DUSE_APPLE_IDN=ON -DENABLE_WEBSOCKETS=ON
             macos-version-min: '10.9'
-            tflags: '~1034 ~1035'  # AppleIDN issues: https://github.com/curl/curl/issues/14176
-          - name: 'OpenSSL +static'
-            generate: -DOPENSSL_ROOT_DIR=$(brew --prefix openssl) -DBUILD_STATIC_LIBS=ON
+          - name: 'OpenSSL +static libssh'
+            install: libssh
+            generate: -DOPENSSL_ROOT_DIR=$(brew --prefix openssl) -DBUILD_STATIC_LIBS=ON -DCURL_USE_LIBSSH2=OFF -DCURL_USE_LIBSSH=ON
             macos-version-min: '10.9'
           - name: 'SecureTransport ws debug+'
             generate: -DCURL_USE_SECTRANSP=ON -DENABLE_WEBSOCKETS=ON -DENABLE_DEBUG=ON -DENABLE_CURLDEBUG=ON
             macos-version-min: '10.8'
-          - name: 'LibreSSL !ldap'
-            install: libressl
-            generate: -DOPENSSL_ROOT_DIR=$(brew --prefix libressl) -DCURL_DISABLE_LDAP=ON -DCURL_DISABLE_LDAPS=ON -DBUILD_EXAMPLES=ON
+          - name: 'LibreSSL !ldap heimdal c-ares'
+            install: libressl heimdal
+            generate: -DOPENSSL_ROOT_DIR=$(brew --prefix libressl) -DENABLE_ARES=ON -DCURL_USE_GSSAPI=ON -DGSS_ROOT_DIR=$(brew --prefix heimdal) -DCURL_DISABLE_LDAP=ON -DBUILD_EXAMPLES=ON
             macos-version-min: '10.15'
-          - name: 'wolfSSL !ldap'
-            install: wolfssl
-            generate: -DCURL_USE_WOLFSSL=ON -DCURL_DISABLE_LDAP=ON -DCURL_DISABLE_LDAPS=ON
+          - name: 'wolfSSL !ldap brotli zstd'
+            install: brotli wolfssl zstd
+            generate: -DCURL_USE_WOLFSSL=ON -DCURL_BROTLI=ON -DCURL_ZSTD=ON -DCURL_DISABLE_LDAP=ON
             macos-version-min: '10.15'
-          - name: 'GnuTLS !ldap'
-            install: gnutls nettle
-            generate: -DCURL_USE_GNUTLS=ON -DCURL_USE_OPENSSL=OFF -DCURL_DISABLE_LDAP=ON -DCURL_DISABLE_LDAPS=ON
+          - name: 'GnuTLS !ldap krb5'
+            install: gnutls nettle krb5
+            generate: -DCURL_USE_GNUTLS=ON -DCURL_USE_OPENSSL=OFF -DCURL_USE_GSSAPI=ON -DGSS_ROOT_DIR=$(brew --prefix krb5) -DCURL_DISABLE_LDAP=ON
             macos-version-min: '10.15'
         exclude:
           - { compiler: llvm@15, build: { macos-version-min: '10.15' } }
@@ -301,19 +305,14 @@ jobs:
     steps:
       - name: 'brew install'
         run: |
-          echo libtool autoconf automake pkg-config libpsl libssh2 nghttp2 openssl ${{ matrix.build.install }} | xargs -Ix -n1 echo brew '"x"' > /tmp/Brewfile
+          echo ninja pkg-config libpsl libssh2 nghttp2 stunnel ${{ matrix.build.install }} | xargs -Ix -n1 echo brew '"x"' > /tmp/Brewfile
           while [[ $? == 0 ]]; do for i in 1 2 3; do brew update && brew bundle install --no-lock --file /tmp/Brewfile && break 2 || { echo Error: wait to try again; sleep 10; } done; false Too many retries; done
 
       - name: 'brew unlink openssl'
         run: |
-          case "${{ matrix.build.install }}" in
-            *openssl*)
-              ;;
-            *)
-              if test -d $(brew --prefix)/include/openssl; then
-                brew unlink openssl
-              fi;;
-          esac
+          if test -d $(brew --prefix)/include/openssl; then
+            brew unlink openssl
+          fi
 
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
 
@@ -324,9 +323,10 @@ jobs:
             grep -h -r -E -o '.+[0-9.]+\.sdk/' "$(dirname "$("${CC}" -print-libgcc-file-name)")/include-fixed" | sed -E 's/^\t+//g' | tr -d '"' | sort -u || true
           which "${CC}"; "${CC}" --version || true
           xcodebuild -version || true
-          xcrun -sdk macosx --show-sdk-path 2>/dev/null || true
+          xcrun --sdk macosx --show-sdk-path 2>/dev/null || true
+          xcrun --sdk macosx --show-sdk-version || true
           echo '::group::macros predefined'; "${CC}" -dM -E - < /dev/null | sort || true; echo '::endgroup::'
-          echo '::group::brew packages preinstalled'; ls -l "$(brew --prefix)/opt"; echo '::endgroup::'
+          echo '::group::brew packages installed'; ls -l "$(brew --prefix)/opt"; echo '::endgroup::'
 
       - name: 'cmake configure'
         run: |
@@ -341,10 +341,9 @@ jobs:
               fi
             done
           fi
-          cmake -B bld -DCMAKE_UNITY_BUILD=ON -DCURL_WERROR=ON \
+          cmake -B bld -G Ninja -DCMAKE_UNITY_BUILD=ON -DCURL_WERROR=ON \
             -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.build.macos-version-min }} \
             "-DCMAKE_C_COMPILER_TARGET=$(uname -m | sed 's/arm64/aarch64/')-apple-darwin$(uname -r)" \
-            -DUSE_NGHTTP2=ON \
             ${{ matrix.build.generate }}
 
       - name: 'configure log'
@@ -356,18 +355,32 @@ jobs:
           echo '::group::raw'; cat bld/lib/curl_config.h || true; echo '::endgroup::'
           cat bld/lib/curl_config.h | grep -F '#define' | sort || true
 
+      - name: 'build-cert'
+        if: contains(matrix.build.generate, '-DCURL_USE_SECTRANSP=ON')
+        run: |
+          ninja -C bld clean-certs
+          ninja -C bld build-certs -j 1
+
       - name: 'cmake build'
-        run: make -C bld VERBOSE=1
+        run: ninja -C bld --verbose
 
       - name: 'curl version'
         run: bld/src/curl --disable --version
 
       - name: 'cmake build tests'
-        run: make -C bld testdeps
+        run: ninja -C bld testdeps
+
+      - name: 'pip3 install'
+        run: |
+          python3 -m venv $HOME/venv
+          source $HOME/venv/bin/activate
+          python3 -m pip install impacket
 
       - name: 'cmake run tests'
+        timeout-minutes: 10
         run: |
           export TFLAGS='${{ matrix.build.tflags }} -j10'
+          TFLAGS+=' ~2037 ~2041'  # flaky
           if [[ '${{ matrix.compiler }}' = 'gcc'* ]]; then
             TFLAGS+=' ~RTSP'  # 567 568 569 570 571 572 577 689 3100
             TFLAGS+=' ~1156 ~1539'  # HTTP Content-Range, Content-Length
@@ -378,8 +391,13 @@ jobs:
               TFLAGS+=' ~2402 ~2404'  # non-SecureTransport + nghttp2
             fi
           fi
+          if [[ '${{ matrix.build.generate }}' = *'-DCURL_USE_SECTRANSP=ON'* ]]; then
+            TFLAGS+=' ~313'  # SecureTransport does not support crl file
+            TFLAGS+=' ~1631 ~1632'  # SecureTransport is not able to shutdown ftp over https gracefully yet
+          fi
+          PATH="$HOME/venv/bin:$PATH"
           rm -f $HOME/.curlrc
-          make -C bld test-ci
+          ninja -C bld test-ci
 
   combinations:  # Test buildability with host OS, Xcode / SDK, compiler, target-OS, SecureTransport/not, built tool, combinations
     if: true  # Set to `true` to enable this test matrix. It runs quickly.
@@ -393,7 +411,7 @@ jobs:
       fail-fast: false
       matrix:
         config: [SecureTransport]  # also: OpenSSL
-        compiler: [gcc-11, gcc-12, gcc-13, gcc-14, llvm@15, clang]
+        compiler: [gcc-12, gcc-13, gcc-14, llvm@15, clang]
         # Xcode support matrix as of 2024-07, with default macOS SDK versions and OS names, years:
         # * = default Xcode on the runner.
         # macos-12: 13.1, 13.2.1, 13.3.1, 13.4.1, 14.0.1, 14.1,*14.2
@@ -440,8 +458,6 @@ jobs:
           - { image: macos-14, xcode: '14.1'   }
           - { image: macos-14, xcode: '14.2'   }
           # Reduce build combinations, by dropping less interesting ones
-          - { compiler: gcc-11, build: autotools }
-          - { compiler: gcc-11, image: macos-14 }
           - { compiler: gcc-12, config: SecureTransport }
           - { compiler: gcc-13, build: cmake }
           - { compiler: gcc-13, image: macos-13 }
@@ -450,7 +466,7 @@ jobs:
       - name: 'install autotools'
         if: ${{ matrix.build == 'autotools' }}
         run: |
-          echo autoconf automake libtool openssl | xargs -Ix -n1 echo brew '"x"' > /tmp/Brewfile
+          echo automake libtool | xargs -Ix -n1 echo brew '"x"' > /tmp/Brewfile
           while [[ $? == 0 ]]; do for i in 1 2 3; do brew update && brew bundle install --no-lock --file /tmp/Brewfile && break 2 || { echo Error: wait to try again; sleep 10; } done; false Too many retries; done
 
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
@@ -462,7 +478,8 @@ jobs:
             grep -h -r -E -o '.+[0-9.]+\.sdk/' "$(dirname "$("${CC}" -print-libgcc-file-name)")/include-fixed" | sed -E 's/^\t+//g' | tr -d '"' | sort -u || true
           which "${CC}"; "${CC}" --version || true
           xcodebuild -version || true
-          xcrun -sdk macosx --show-sdk-path 2>/dev/null || true
+          xcrun --sdk macosx --show-sdk-path 2>/dev/null || true
+          xcrun --sdk macosx --show-sdk-version || true
           echo '::group::macros predefined'; "${CC}" -dM -E - < /dev/null | sort || true; echo '::endgroup::'
           echo '::group::brew packages preinstalled'; ls -l "$(brew --prefix)/opt"; echo '::endgroup::'
 
@@ -520,7 +537,7 @@ jobs:
           # broken in 8 out of 12 combinations (66%) have an SDK mismatch,
           # and 9 fail to build (75%). These are the 3 lucky default
           # combinations that worked to build curl:
-          #   macos-14 + Xcode 15.0.1 + gcc-11, gcc-12, gcc-14
+          #   macos-14 + Xcode 15.0.1 + gcc-12, gcc-14
           #
           # Of all possible valid GHA runner, gcc, manually selected Xcode
           # combinations, 40% are broken.
@@ -537,14 +554,14 @@ jobs:
           #
           # Errors seen in available CI combinations:
           #   error: two or more data types in declaration specifiers # fatal error: AvailabilityInternalLegacy.h: No such file or directory
-          #     gcc-11, gcc-13 + macos-14 + Xcode 14.3.1
+          #     gcc-13 + macos-14 + Xcode 14.3.1
           #   error: two or more data types in declaration specifiers
           #     gcc-13 + macos-12 + Xcode 14.1, 14.2
           #     gcc-13 + Xcode 15.0.1, 15.1, 5.2
           #   error: expected ';' before 'extern'
-          #     gcc-11, gcc-12, gcc-14 + macos-12 + Xcode 14.1, 14.2
+          #     gcc-12, gcc-14 + macos-12 + Xcode 14.1, 14.2
           #   error: unknown type name 'dispatch_queue_t'
-          #     gcc-11, gcc-12 + macos-13 + Xcode 15.0.1, 15.1, 15.2
+          #     gcc-12 + macos-13 + Xcode 15.0.1, 15.1, 15.2
           #   error: type defaults to 'int' in declaration of 'DISPATCH_DECL_FACTORY_CLASS_SWIFT' [-Wimplicit-int]
           #     gcc-14 macos-13 Xcode 15.0.1, 15.1, 15.2
           #   error: unknown type name 'FILE'
@@ -576,8 +593,8 @@ jobs:
               CC+=" --target=$(uname -m)-apple-darwin"
             fi
             if [ '${{ matrix.compiler }}' != 'clang' ]; then
-              options+=" --with-sysroot=$(xcrun -sdk macosx --show-sdk-path 2>/dev/null)"
-              CFLAGS+=" --sysroot=$(xcrun -sdk macosx --show-sdk-path 2>/dev/null)"
+              options+=" --with-sysroot=$(xcrun --sdk macosx --show-sdk-path 2>/dev/null)"
+              CFLAGS+=" --sysroot=$(xcrun --sdk macosx --show-sdk-path 2>/dev/null)"
             fi
             [ '${{ matrix.config }}' = 'OpenSSL' ]         && options+=" --with-openssl=$(brew --prefix openssl)"
             [ '${{ matrix.config }}' = 'SecureTransport' ] && options+=' --with-secure-transport'
@@ -587,6 +604,7 @@ jobs:
               --disable-dependency-tracking \
               --disable-docs --disable-manual \
               --without-nghttp2 --without-libidn2 \
+              --without-libpsl \
               ${options}
           else
             [ '${{ matrix.config }}' = 'OpenSSL' ]         && options+=' -DCURL_USE_OPENSSL=ON'
@@ -597,7 +615,8 @@ jobs:
               "-DCMAKE_IGNORE_PREFIX_PATH=$(brew --prefix)" \
               "-DCMAKE_C_COMPILER_TARGET=$(uname -m | sed 's/arm64/aarch64/')-apple-darwin$(uname -r)" \
               -DBUILD_LIBCURL_DOCS=OFF -DBUILD_MISC_DOCS=OFF -DENABLE_CURL_MANUAL=OFF \
-              -DUSE_APPLE_IDN=OFF \
+              -DUSE_NGHTTP2=OFF -DUSE_LIBIDN2=OFF \
+              -DCURL_USE_LIBPSL=OFF -DCURL_USE_LIBSSH2=OFF \
               ${options}
           fi
 
