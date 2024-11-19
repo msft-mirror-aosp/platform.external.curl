@@ -58,7 +58,7 @@ cc_defaults {
         // TODO(avakulenko): Android.mk had this for OS version string:
         // "Android $(PLATFORM_VERSION) $(TARGET_ARCH_VARIANT)"
         // but Soong doesn't have access to those config variables yet.
-        "-DOS=\"Android\"",
+        "-DCURL_OS=\"Android\"",
         "-Werror",
         // Bug: http://b/29823425 Disable -Wvarargs for Clang update to r271374
         "-Wno-varargs",
