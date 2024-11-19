@@ -55,10 +55,6 @@ cc_defaults {
         "-Wdeclaration-after-statement",
         "-Wno-system-headers",
         "-DHAVE_CONFIG_H",
-        // TODO(avakulenko): Android.mk had this for OS version string:
-        // "Android $(PLATFORM_VERSION) $(TARGET_ARCH_VARIANT)"
-        // but Soong doesn't have access to those config variables yet.
-        "-DCURL_OS=\"Android\"",
         "-Werror",
         // Bug: http://b/29823425 Disable -Wvarargs for Clang update to r271374
         "-Wno-varargs",
