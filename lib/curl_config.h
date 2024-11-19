@@ -16,6 +16,9 @@
 /* Location of default ca path */
 #define CURL_CA_PATH "/system/etc/security/cacerts"
 
+/* If safe CA bundle search is enabled */
+/* #undef CURL_CA_SEARCH_SAFE */
+
 /* Default SSL backend */
 /* #undef CURL_DEFAULT_SSL_BACKEND */
 
@@ -33,6 +36,9 @@
 
 /* disable local binding support */
 /* #undef CURL_DISABLE_BINDLOCAL */
+
+/* If unsafe CA bundle search in PATH on Windows is disabled */
+/* #undef CURL_DISABLE_CA_SEARCH */
 
 /* to disable cookies support */
 /* #undef CURL_DISABLE_COOKIES */
@@ -75,6 +81,9 @@
 
 /* to disable IMAP */
 #define CURL_DISABLE_IMAP 1
+
+/* to disable IPFS */
+/* #undef CURL_DISABLE_IPFS */
 
 /* to disable kerberos authentication */
 /* #undef CURL_DISABLE_KERBEROS_AUTH */
@@ -145,8 +154,11 @@
 /* to disable verbose strings */
 /* #undef CURL_DISABLE_VERBOSE_STRINGS */
 
+/* disable WebSockets */
+/* #undef CURL_DISABLE_WEBSOCKETS */
+
 /* Definition to make a library symbol externally visible. */
-#define CURL_EXTERN_SYMBOL __attribute__ ((__visibility__ ("default")))
+#define CURL_EXTERN_SYMBOL __attribute__((__visibility__("default")))
 
 /* IP address type in sockaddr */
 #define CURL_SA_FAMILY_T sa_family_t
@@ -463,7 +475,7 @@
 #define HAVE_NETDB_H 1
 
 /* Define to 1 if you have the <netinet/in6.h> header file. */
-/* #undef HAVE_NETINET_IN6_H 1 */
+/* #undef HAVE_NETINET_IN6_H */
 
 /* Define to 1 if you have the <netinet/in.h> header file. */
 #define HAVE_NETINET_IN_H 1
@@ -524,8 +536,8 @@
 /* Define to 1 if you have the `pipe' function. */
 #define HAVE_PIPE 1
 
-/* If you have a fine poll */
-#define HAVE_POLL_FINE 1
+/* Define to 1 if you have the `poll' function. */
+#define HAVE_POLL 1
 
 /* Define to 1 if you have the <poll.h> header file. */
 #define HAVE_POLL_H 1
@@ -562,6 +574,9 @@
 
 /* Define to 1 if you have the send function. */
 #define HAVE_SEND 1
+
+/* Define to 1 if you have the `sendmmsg' function. */
+#define HAVE_SENDMMSG 1
 
 /* Define to 1 if you have the `sendmsg' function. */
 #define HAVE_SENDMSG 1
@@ -601,9 +616,6 @@
 
 /* Define to 1 if you have the socketpair function. */
 #define HAVE_SOCKETPAIR 1
-
-/* Define to 1 if you have the <socket.h> header file. */
-/* #undef HAVE_SOCKET_H */
 
 /* Define to 1 if you have the `SSL_ech_set1_echconfig' function. */
 /* #undef HAVE_SSL_ECH_SET1_ECHCONFIG */
@@ -753,6 +765,9 @@
 /* Define to 1 if you have the <wolfssh/ssh.h> header file. */
 /* #undef HAVE_WOLFSSH_SSH_H */
 
+/* if you have wolfSSL_BIO_new */
+/* #undef HAVE_WOLFSSL_BIO */
+
 /* Define to 1 if you have the `wolfSSL_CTX_GenerateEchConfig' function. */
 /* #undef HAVE_WOLFSSL_CTX_GENERATEECHCONFIG */
 
@@ -782,6 +797,9 @@
 
 /* Define to 1 if you have the `_fseeki64' function. */
 /* #undef HAVE__FSEEKI64 */
+
+/* Define to 1 if you have the `_setmode' function. */
+/* #undef HAVE__SETMODE */
 
 /* Define to the sub-directory where libtool stores uninstalled libraries. */
 #define LT_OBJDIR ".libs/"
@@ -955,9 +973,6 @@
 
 /* Use Unix domain sockets */
 #define USE_UNIX_SOCKETS 1
-
-/* enable WebSockets support */
-/* #undef USE_WEBSOCKETS */
 
 /* Define to 1 if you are building a Windows target with crypto API support.
    */
