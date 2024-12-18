@@ -10,11 +10,14 @@
 /* Location of default ca bundle */
 /* #undef CURL_CA_BUNDLE */
 
-/* define "1" to use built in CA store of SSL library */
+/* define "1" to use built-in CA store of SSL library */
 /* #undef CURL_CA_FALLBACK */
 
 /* Location of default ca path */
 #define CURL_CA_PATH "/system/etc/security/cacerts"
+
+/* If safe CA bundle search is enabled */
+/* #undef CURL_CA_SEARCH_SAFE */
 
 /* Default SSL backend */
 /* #undef CURL_DEFAULT_SSL_BACKEND */
@@ -33,6 +36,9 @@
 
 /* disable local binding support */
 /* #undef CURL_DISABLE_BINDLOCAL */
+
+/* If unsafe CA bundle search in PATH on Windows is disabled */
+/* #undef CURL_DISABLE_CA_SEARCH */
 
 /* to disable cookies support */
 /* #undef CURL_DISABLE_COOKIES */
@@ -75,6 +81,9 @@
 
 /* to disable IMAP */
 #define CURL_DISABLE_IMAP 1
+
+/* to disable IPFS */
+/* #undef CURL_DISABLE_IPFS */
 
 /* to disable kerberos authentication */
 /* #undef CURL_DISABLE_KERBEROS_AUTH */
@@ -121,6 +130,9 @@
 /* to disable RTSP */
 #define CURL_DISABLE_RTSP 1
 
+/* disable SHA-512/256 hash algorithm */
+/* #undef CURL_DISABLE_SHA512_256 */
+
 /* disable DNS shuffling */
 /* #undef CURL_DISABLE_SHUFFLE_DNS */
 
@@ -142,8 +154,14 @@
 /* to disable verbose strings */
 /* #undef CURL_DISABLE_VERBOSE_STRINGS */
 
+/* disable WebSockets */
+/* #undef CURL_DISABLE_WEBSOCKETS */
+
 /* Definition to make a library symbol externally visible. */
-#define CURL_EXTERN_SYMBOL __attribute__ ((__visibility__ ("default")))
+#define CURL_EXTERN_SYMBOL __attribute__((__visibility__("default")))
+
+/* cpu-machine-OS */
+#define CURL_OS "Android"
 
 /* IP address type in sockaddr */
 #define CURL_SA_FAMILY_T sa_family_t
@@ -460,7 +478,7 @@
 #define HAVE_NETDB_H 1
 
 /* Define to 1 if you have the <netinet/in6.h> header file. */
-/* #undef HAVE_NETINET_IN6_H 1 */
+/* #undef HAVE_NETINET_IN6_H */
 
 /* Define to 1 if you have the <netinet/in.h> header file. */
 #define HAVE_NETINET_IN_H 1
@@ -493,9 +511,6 @@
 /* if you have opendir */
 #define HAVE_OPENDIR 1
 
-/* Define to 1 if using OpenSSL 3 or later. */
-/* #undef HAVE_OPENSSL3 */
-
 /* Define to 1 if you have the <openssl/crypto.h> header file. */
 #define HAVE_OPENSSL_CRYPTO_H 1
 
@@ -504,9 +519,6 @@
 
 /* Define to 1 if you have the <openssl/pem.h> header file. */
 #define HAVE_OPENSSL_PEM_H 1
-
-/* if you have the functions OSSL_QUIC_client_method */
-/* #undef HAVE_OPENSSL_QUIC */
 
 /* Define to 1 if you have the <openssl/rsa.h> header file. */
 #define HAVE_OPENSSL_RSA_H 1
@@ -527,8 +539,8 @@
 /* Define to 1 if you have the `pipe' function. */
 #define HAVE_PIPE 1
 
-/* If you have a fine poll */
-#define HAVE_POLL_FINE 1
+/* Define to 1 if you have the `poll' function. */
+#define HAVE_POLL 1
 
 /* Define to 1 if you have the <poll.h> header file. */
 #define HAVE_POLL_H 1
@@ -565,6 +577,9 @@
 
 /* Define to 1 if you have the send function. */
 #define HAVE_SEND 1
+
+/* Define to 1 if you have the `sendmmsg' function. */
+#define HAVE_SENDMMSG 1
 
 /* Define to 1 if you have the `sendmsg' function. */
 #define HAVE_SENDMSG 1
@@ -604,9 +619,6 @@
 
 /* Define to 1 if you have the socketpair function. */
 #define HAVE_SOCKETPAIR 1
-
-/* Define to 1 if you have the <socket.h> header file. */
-/* #undef HAVE_SOCKET_H */
 
 /* Define to 1 if you have the `SSL_ech_set1_echconfig' function. */
 /* #undef HAVE_SSL_ECH_SET1_ECHCONFIG */
@@ -735,6 +747,9 @@
 /* Define this if time_t is unsigned */
 /* #undef HAVE_TIME_T_UNSIGNED */
 
+/* Define to 1 if you have the <unicode/uidna.h> header file. */
+/* #undef HAVE_UNICODE_UIDNA_H */
+
 /* Define to 1 if you have the <unistd.h> header file. */
 #define HAVE_UNISTD_H 1
 
@@ -747,8 +762,14 @@
 /* Define to 1 if you have the <utime.h> header file. */
 #define HAVE_UTIME_H 1
 
+/* Define to 1 if you have the <uv.h> header file. */
+/* #undef HAVE_UV_H */
+
 /* Define to 1 if you have the <wolfssh/ssh.h> header file. */
 /* #undef HAVE_WOLFSSH_SSH_H */
+
+/* if you have wolfSSL_BIO_new */
+/* #undef HAVE_WOLFSSL_BIO */
 
 /* Define to 1 if you have the `wolfSSL_CTX_GenerateEchConfig' function. */
 /* #undef HAVE_WOLFSSL_CTX_GENERATEECHCONFIG */
@@ -779,6 +800,9 @@
 
 /* Define to 1 if you have the `_fseeki64' function. */
 /* #undef HAVE__FSEEKI64 */
+
+/* Define to 1 if you have the `_setmode' function. */
+/* #undef HAVE__SETMODE */
 
 /* Define to the sub-directory where libtool stores uninstalled libraries. */
 #define LT_OBJDIR ".libs/"
@@ -813,9 +837,6 @@
 /* Define to the version of this package. */
 #define PACKAGE_VERSION "-"
 
-/* a suitable file to read random data from */
-#define RANDOM_FILE "/dev/urandom"
-
 /* Size of curl_off_t in number of bytes */
 #define SIZEOF_CURL_OFF_T 8
 
@@ -847,6 +868,9 @@
 
 /* if AmiSSL is in use */
 /* #undef USE_AMISSL */
+
+/* if AppleIDN */
+/* #undef USE_APPLE_IDN */
 
 /* Define to enable c-ares support */
 /* #undef USE_ARES */
@@ -884,8 +908,8 @@
 /* if libssh2 is in use */
 /* #undef USE_LIBSSH2 */
 
-/* If you want to build curl with the built-in manual */
-#define USE_MANUAL 1
+/* if libuv is in use */
+/* #undef USE_LIBUV */
 
 /* if mbedTLS is enabled */
 /* #undef USE_MBEDTLS */
@@ -932,7 +956,7 @@
 /* if quiche is in use */
 /* #undef USE_QUICHE */
 
-/* if rustls is enabled */
+/* if Rustls is enabled */
 /* #undef USE_RUSTLS */
 
 /* to enable Windows native SSL/TLS support */
@@ -952,9 +976,6 @@
 
 /* Use Unix domain sockets */
 #define USE_UNIX_SOCKETS 1
-
-/* enable websockets support */
-/* #undef USE_WEBSOCKETS */
 
 /* Define to 1 if you are building a Windows target with crypto API support.
    */
