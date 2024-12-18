@@ -23,8 +23,6 @@
  ***************************************************************************/
 #include "tool_setup.h"
 
-#define ENABLE_CURLX_PRINTF
-/* use our own printf() functions */
 #include "curlx.h"
 
 #include "tool_cfgable.h"
@@ -363,7 +361,7 @@ static ParameterError addvariable(struct GlobalConfig *global,
   if(p) {
     memcpy(p->name, name, nlen);
 
-    p->content = contalloc ? content: Memdup(content, clen);
+    p->content = contalloc ? content : Memdup(content, clen);
     if(p->content) {
       p->clen = clen;
 

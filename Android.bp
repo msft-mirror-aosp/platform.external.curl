@@ -55,15 +55,14 @@ cc_defaults {
         "-Wdeclaration-after-statement",
         "-Wno-system-headers",
         "-DHAVE_CONFIG_H",
-        // TODO(avakulenko): Android.mk had this for OS version string:
-        // "Android $(PLATFORM_VERSION) $(TARGET_ARCH_VARIANT)"
-        // but Soong doesn't have access to those config variables yet.
-        "-DOS=\"Android\"",
         "-Werror",
         // Bug: http://b/29823425 Disable -Wvarargs for Clang update to r271374
         "-Wno-varargs",
     ],
-    local_include_dirs: ["include", "lib"],
+    local_include_dirs: [
+        "include",
+        "lib",
+    ],
     multilib: {
         lib32: {
             cflags: [
@@ -96,7 +95,7 @@ cc_library {
         "-Wno-format",
         "-Wformat-security",
     ],
-    srcs:[
+    srcs: [
         "lib/**/*.c",
     ],
     shared_libs: [
@@ -123,6 +122,7 @@ cc_binary {
         "lib/base64.c",
         "lib/dynbuf.c",
     ],
+    exclude_srcs: ["src/tool_hugehelp.c"],
     shared_libs: [
         "libcrypto",
         "libssl",
