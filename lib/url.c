@@ -382,8 +382,6 @@ CURLcode Curl_init_userdefined(struct Curl_easy *data)
 #endif
   set->dns_cache_timeout = 60; /* Timeout every 60 seconds by default */
 
-  /* Set the default size of the SSL session ID cache */
-  set->general_ssl.max_ssl_sessions = 5;
   /* Timeout every 24 hours by default */
   set->general_ssl.ca_cache_timeout = 24 * 60 * 60;
 
@@ -839,8 +837,8 @@ CURLcode Curl_conn_upkeep(struct Curl_easy *data,
 static bool ssh_config_matches(struct connectdata *one,
                                struct connectdata *two)
 {
-  return (Curl_safecmp(one->proto.sshc.rsa, two->proto.sshc.rsa) &&
-          Curl_safecmp(one->proto.sshc.rsa_pub, two->proto.sshc.rsa_pub));
+  return Curl_safecmp(one->proto.sshc.rsa, two->proto.sshc.rsa) &&
+         Curl_safecmp(one->proto.sshc.rsa_pub, two->proto.sshc.rsa_pub);
 }
 #else
 #define ssh_config_matches(x,y) FALSE
@@ -958,12 +956,12 @@ static bool url_match_conn(struct connectdata *conn, void *userdata)
     return FALSE;
 #endif
 
-  if((needle->handler->flags&PROTOPT_SSL) !=
-     (conn->handler->flags&PROTOPT_SSL))
-    /* do not do mixed SSL and non-SSL connections */
-    if(get_protocol_family(conn->handler) !=
-       needle->handler->protocol || !conn->bits.tls_upgraded)
-      /* except protocols that have been upgraded via TLS */
+  if((!(needle->handler->flags&PROTOPT_SSL) !=
+      !Curl_conn_is_ssl(conn, FIRSTSOCKET)) &&
+     !(get_protocol_family(conn->handler) == needle->handler->protocol &&
+       conn->bits.tls_upgraded))
+    /* Deny `conn` if it is not fit for `needle`'s SSL needs,
+     * UNLESS `conn` is the same protocol family and was upgraded to SSL. */
       return FALSE;
 
 #ifndef CURL_DISABLE_PROXY
@@ -1004,7 +1002,7 @@ static bool url_match_conn(struct connectdata *conn, void *userdata)
   if(match->may_multiplex &&
      (data->state.httpwant == CURL_HTTP_VERSION_2_0) &&
      (needle->handler->protocol & CURLPROTO_HTTP) &&
-     !conn->httpversion) {
+     !conn->httpversion_seen) {
     if(data->set.pipewait) {
       infof(data, "Server upgrade does not support multiplex yet, wait");
       match->found = NULL;
@@ -1027,10 +1025,12 @@ static bool url_match_conn(struct connectdata *conn, void *userdata)
     }
   }
 
+#ifdef HAVE_GSSAPI
   /* GSS delegation differences do not actually affect every connection
      and auth method, but this check takes precaution before efficiency */
   if(needle->gssapi_delegation != conn->gssapi_delegation)
     return FALSE;
+#endif
 
   /* If looking for HTTP and the HTTP version we want is less
    * than the HTTP version of conn, continue looking.
@@ -1038,17 +1038,18 @@ static bool url_match_conn(struct connectdata *conn, void *userdata)
    * so we take any existing connection. */
   if((needle->handler->protocol & PROTO_FAMILY_HTTP) &&
      (data->state.httpwant != CURL_HTTP_VERSION_2TLS)) {
-    if((conn->httpversion >= 20) &&
+    unsigned char httpversion = Curl_conn_http_version(data);
+    if((httpversion >= 20) &&
        (data->state.httpwant < CURL_HTTP_VERSION_2_0)) {
       DEBUGF(infof(data, "nor reusing conn #%" CURL_FORMAT_CURL_OFF_T
              " with httpversion=%d, we want a version less than h2",
-             conn->connection_id, conn->httpversion));
+             conn->connection_id, httpversion));
     }
-    if((conn->httpversion >= 30) &&
+    if((httpversion >= 30) &&
        (data->state.httpwant < CURL_HTTP_VERSION_3)) {
       DEBUGF(infof(data, "nor reusing conn #%" CURL_FORMAT_CURL_OFF_T
              " with httpversion=%d, we want a version less than h3",
-             conn->connection_id, conn->httpversion));
+             conn->connection_id, httpversion));
       return FALSE;
     }
   }
@@ -1390,8 +1391,9 @@ static struct connectdata *allocate_conn(struct Curl_easy *data)
   conn->fclosesocket = data->set.fclosesocket;
   conn->closesocket_client = data->set.closesocket_client;
   conn->lastused = conn->created;
+#ifdef HAVE_GSSAPI
   conn->gssapi_delegation = data->set.gssapi_delegation;
-
+#endif
   return conn;
 error:
 
@@ -1827,7 +1829,7 @@ static CURLcode parseurlandfillconn(struct Curl_easy *data,
   /* HSTS upgrade */
   if(data->hsts && strcasecompare("http", data->state.up.scheme)) {
     /* This MUST use the IDN decoded name */
-    if(Curl_hsts(data->hsts, conn->host.name, TRUE)) {
+    if(Curl_hsts(data->hsts, conn->host.name, strlen(conn->host.name), TRUE)) {
       char *url;
       Curl_safefree(data->state.up.scheme);
       uc = curl_url_set(uh, CURLUPART_SCHEME, "https", 0);
@@ -2651,6 +2653,17 @@ static CURLcode parse_remote_port(struct Curl_easy *data,
   return CURLE_OK;
 }
 
+static bool str_has_ctrl(const char *input)
+{
+  const unsigned char *str = (const unsigned char *)input;
+  while(*str) {
+    if(*str < 0x20)
+      return TRUE;
+    str++;
+  }
+  return FALSE;
+}
+
 /*
  * Override the login details from the URL with that in the CURLOPT_USERPWD
  * option or a .netrc file, if applicable.
@@ -2682,29 +2695,40 @@ static CURLcode override_login(struct Curl_easy *data,
 
     if(data->state.aptr.user &&
        (data->state.creds_from != CREDS_NETRC)) {
-      /* there was a username in the URL. Use the URL decoded version */
+      /* there was a username with a length in the URL. Use the URL decoded
+         version */
       userp = &data->state.aptr.user;
       url_provided = TRUE;
     }
 
-    ret = Curl_parsenetrc(&data->state.netrc, conn->host.name,
-                          userp, passwdp,
-                          data->set.str[STRING_NETRC_FILE]);
-    if(ret > 0) {
-      infof(data, "Couldn't find host %s in the %s file; using defaults",
-            conn->host.name,
-            (data->set.str[STRING_NETRC_FILE] ?
-             data->set.str[STRING_NETRC_FILE] : ".netrc"));
-    }
-    else if(ret < 0) {
-      failf(data, ".netrc parser error");
-      return CURLE_READ_ERROR;
-    }
-    else {
-      /* set bits.netrc TRUE to remember that we got the name from a .netrc
-         file, so that it is safe to use even if we followed a Location: to a
-         different host or similar. */
-      conn->bits.netrc = TRUE;
+    if(!*passwdp) {
+      ret = Curl_parsenetrc(&data->state.netrc, conn->host.name,
+                            userp, passwdp,
+                            data->set.str[STRING_NETRC_FILE]);
+      if(ret > 0) {
+        infof(data, "Couldn't find host %s in the %s file; using defaults",
+              conn->host.name,
+              (data->set.str[STRING_NETRC_FILE] ?
+               data->set.str[STRING_NETRC_FILE] : ".netrc"));
+      }
+      else if(ret < 0) {
+        failf(data, ".netrc parser error");
+        return CURLE_READ_ERROR;
+      }
+      else {
+        if(!(conn->handler->flags&PROTOPT_USERPWDCTRL)) {
+          /* if the protocol can't handle control codes in credentials, make
+             sure there are none */
+          if(str_has_ctrl(*userp) || str_has_ctrl(*passwdp)) {
+            failf(data, "control code detected in .netrc credentials");
+            return CURLE_READ_ERROR;
+          }
+        }
+        /* set bits.netrc TRUE to remember that we got the name from a .netrc
+           file, so that it is safe to use even if we followed a Location: to a
+           different host or similar. */
+        conn->bits.netrc = TRUE;
+      }
     }
     if(url_provided) {
       Curl_safefree(conn->user);
@@ -3115,14 +3139,14 @@ static CURLcode parse_connect_to_slist(struct Curl_easy *data,
         /* protocol version switch */
         switch(as->dst.alpnid) {
         case ALPN_h1:
-          conn->httpversion = 11;
+          data->state.httpwant = CURL_HTTP_VERSION_1_1;
           break;
         case ALPN_h2:
-          conn->httpversion = 20;
+          data->state.httpwant = CURL_HTTP_VERSION_2_0;
           break;
         case ALPN_h3:
           conn->transport = TRNSPRT_QUIC;
-          conn->httpversion = 30;
+          data->state.httpwant = CURL_HTTP_VERSION_3;
           break;
         default: /* should not be possible */
           break;
