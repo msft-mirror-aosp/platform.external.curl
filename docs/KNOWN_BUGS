@@ -21,6 +21,7 @@ problems may have been fixed or changed somewhat since this was written.
  2.7 Client cert (MTLS) issues with Schannel
  2.11 Schannel TLS 1.2 handshake bug in old Windows versions
  2.13 CURLOPT_CERTINFO results in CURLE_OUT_OF_MEMORY with Schannel
+ 2.14 mbedTLS and CURLE_AGAIN handling
 
  3. Email protocols
  3.1 IMAP SEARCH ALL truncated response
@@ -78,6 +79,7 @@ problems may have been fixed or changed somewhat since this was written.
  11.6 test cases sometimes timeout
  11.7 CURLOPT_CONNECT_TO does not work for HTTPS proxy
  11.8 WinIDN test failures
+ 11.9 setting a disabled option should return CURLE_NOT_BUILT_IN
 
  12. LDAP
  12.1 OpenLDAP hangs after returning results
@@ -157,6 +159,10 @@ problems may have been fixed or changed somewhat since this was written.
 2.13 CURLOPT_CERTINFO results in CURLE_OUT_OF_MEMORY with Schannel
 
  https://github.com/curl/curl/issues/8741
+
+2.14 mbedTLS and CURLE_AGAIN handling
+
+ https://github.com/curl/curl/issues/15801
 
 3. Email protocols
 
@@ -494,6 +500,15 @@ problems may have been fixed or changed somewhat since this was written.
 11.8 WinIDN test failures
 
  Test 165 disabled when built with WinIDN.
+
+11.9 setting a disabled option should return CURLE_NOT_BUILT_IN
+
+ When curl has been built with specific features or protocols disabled,
+ setting such options with curl_easy_setopt() should rather return
+ CURLE_NOT_BUILT_IN instead of CURLE_UNKNOWN_OPTION to signal the difference
+ to the application
+
+ See https://github.com/curl/curl/issues/15472
 
 12. LDAP
 
