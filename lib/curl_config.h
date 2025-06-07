@@ -1,8 +1,7 @@
 /* lib/curl_config.h.  Generated from curl_config.h.in by configure.  */
 /* lib/curl_config.h.in.  Generated from configure.ac by autoheader.  */
 
-/* to enable curl debug memory tracking */
-/* #undef CURLDEBUG */
+/* !checksrc! disable COPYRIGHT all */
 
 /* Location of default ca bundle */
 /* #undef CURL_CA_BUNDLE */
@@ -163,11 +162,11 @@
 /* built with multiple SSL backends */
 /* #undef CURL_WITH_MULTI_SSL */
 
-/* enable debug build options */
-/* #undef DEBUGBUILD */
-
 /* Define to the type of arg 2 for gethostname. */
 #define GETHOSTNAME_TYPE_ARG2 size_t
+
+/* Define to 1 if you have the 'accept4' function. */
+#define HAVE_ACCEPT4 1
 
 /* Define to 1 if symbol `ADDRESS_FAMILY' exists */
 /* #undef HAVE_ADDRESS_FAMILY */
@@ -508,6 +507,9 @@
 /* Define to 1 if you have the 'pipe' function. */
 #define HAVE_PIPE 1
 
+/* Define to 1 if you have the 'pipe2' function. */
+#define HAVE_PIPE2 1
+
 /* Define to 1 if you have the 'poll' function. */
 #define HAVE_POLL 1
 
@@ -595,6 +597,9 @@
 /* Define to 1 if you have the 'SSL_set1_ech_config_list' function. */
 /* #undef HAVE_SSL_SET1_ECH_CONFIG_LIST */
 
+/* Define to 1 if you have the 'SSL_set_quic_tls_cbs' function. */
+/* #undef HAVE_SSL_SET_QUIC_TLS_CBS */
+
 /* Define to 1 if you have the 'SSL_set_quic_use_legacy_codepoint' function.
    */
 /* #undef HAVE_SSL_SET_QUIC_USE_LEGACY_CODEPOINT */
@@ -637,12 +642,6 @@
 
 /* Define to 1 if you have the <stropts.h> header file. */
 /* #undef HAVE_STROPTS_H */
-
-/* Define to 1 if you have the strtok_r function. */
-#define HAVE_STRTOK_R 1
-
-/* Define to 1 if you have the strtoll function. */
-#define HAVE_STRTOLL 1
 
 /* if struct sockaddr_storage is defined */
 #define HAVE_STRUCT_SOCKADDR_STORAGE 1
@@ -728,20 +727,24 @@
 /* Define to 1 if you have the <wolfssh/ssh.h> header file. */
 /* #undef HAVE_WOLFSSH_SSH_H */
 
-/* if you have wolfSSL_BIO_new */
-/* #undef HAVE_WOLFSSL_BIO */
+/* Define to 1 if you have the 'wolfSSL_BIO_new' function. */
+/* #undef HAVE_WOLFSSL_BIO_NEW */
+
+/* Define to 1 if you have the 'wolfSSL_BIO_set_shutdown' function. */
+/* #undef HAVE_WOLFSSL_BIO_SET_SHUTDOWN */
 
 /* Define to 1 if you have the 'wolfSSL_CTX_GenerateEchConfig' function. */
 /* #undef HAVE_WOLFSSL_CTX_GENERATEECHCONFIG */
 
-/* if you have wolfSSL_DES_ecb_encrypt */
+/* Define to 1 if you have the 'wolfSSL_DES_ecb_encrypt' function. */
 /* #undef HAVE_WOLFSSL_DES_ECB_ENCRYPT */
-
-/* if you have wolfSSL_BIO_set_shutdown */
-/* #undef HAVE_WOLFSSL_FULL_BIO */
 
 /* Define to 1 if you have the 'wolfSSL_get_peer_certificate' function. */
 /* #undef HAVE_WOLFSSL_GET_PEER_CERTIFICATE */
+
+/* Define to 1 if you have the 'wolfSSL_set_quic_use_legacy_codepoint'
+   function. */
+/* #undef HAVE_WOLFSSL_SET_QUIC_USE_LEGACY_CODEPOINT */
 
 /* Define to 1 if you have the 'wolfSSL_UseALPN' function. */
 /* #undef HAVE_WOLFSSL_USEALPN */
@@ -769,6 +772,9 @@
 
 /* Define to 1 if _THREAD_SAFE preprocessor symbol must be defined. */
 /* #undef NEED_THREAD_SAFE */
+
+/* openssl with new QUIC API */
+/* #undef OPENSSL_QUIC_API2 */
 
 /* Name of package */
 #define PACKAGE "curl"
@@ -883,9 +889,6 @@
 /* if OpenSSL is in use */
 #define USE_OPENSSL 1
 
-/* if openssl QUIC is in use */
-/* #undef USE_OPENSSL_QUIC */
-
 /* if quiche is in use */
 /* #undef USE_QUICHE */
 
@@ -961,9 +964,6 @@
 
 /* Define to empty if 'const' does not conform to ANSI C. */
 /* #undef const */
-
-/* Type to use in place of in_addr_t when system does not provide it. */
-/* #undef in_addr_t */
 
 /* Define as 'unsigned int' if <stddef.h> doesn't define. */
 /* #undef size_t */
