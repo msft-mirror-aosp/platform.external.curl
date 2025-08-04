@@ -342,10 +342,10 @@
 /* Define to 1 if you have the 'if_nametoindex' function. */
 #define HAVE_IF_NAMETOINDEX 1
 
-/* Define to 1 if you have a IPv6 capable working inet_ntop function. */
+/* Define to 1 if you have an IPv6 capable working inet_ntop function. */
 #define HAVE_INET_NTOP 1
 
-/* Define to 1 if you have a IPv6 capable working inet_pton function. */
+/* Define to 1 if you have an IPv6 capable working inet_pton function. */
 #define HAVE_INET_PTON 1
 
 /* Define to 1 if you have the <inttypes.h> header file. */
@@ -673,17 +673,11 @@
 /* Define to 1 if you have the <sys/select.h> header file. */
 #define HAVE_SYS_SELECT_H 1
 
-/* Define to 1 if you have the <sys/socket.h> header file. */
-#define HAVE_SYS_SOCKET_H 1
-
 /* Define to 1 if you have the <sys/sockio.h> header file. */
 /* #undef HAVE_SYS_SOCKIO_H */
 
 /* Define to 1 if you have the <sys/stat.h> header file. */
 #define HAVE_SYS_STAT_H 1
-
-/* Define to 1 if you have the <sys/time.h> header file. */
-#define HAVE_SYS_TIME_H 1
 
 /* Define to 1 if you have the <sys/types.h> header file. */
 #define HAVE_SYS_TYPES_H 1
@@ -835,9 +829,6 @@
 /* Define to enable c-ares support */
 /* #undef USE_ARES */
 
-/* if BearSSL is enabled */
-/* #undef USE_BEARSSL */
-
 /* if ECH support is available */
 /* #undef USE_ECH */
 
@@ -889,6 +880,9 @@
 /* if OpenSSL is in use */
 #define USE_OPENSSL 1
 
+/* if openssl QUIC is in use */
+/* #undef USE_OPENSSL_QUIC */
+
 /* if quiche is in use */
 /* #undef USE_QUICHE */
 
@@ -897,9 +891,6 @@
 
 /* to enable Windows native SSL/TLS support */
 /* #undef USE_SCHANNEL */
-
-/* enable Secure Transport */
-/* #undef USE_SECTRANSP */
 
 /* if SSL session export support is available */
 /* #undef USE_SSLS_EXPORT */
