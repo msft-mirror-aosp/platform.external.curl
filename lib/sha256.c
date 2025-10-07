@@ -25,8 +25,8 @@
 
 #include "curl_setup.h"
 
-#if !defined(CURL_DISABLE_AWS) || !defined(CURL_DISABLE_DIGEST_AUTH) || \
-  defined(USE_LIBSSH2) || defined(USE_SSL)
+#if !defined(CURL_DISABLE_AWS) || !defined(CURL_DISABLE_DIGEST_AUTH) \
+  || defined(USE_LIBSSH2) || defined(USE_SSL)
 
 #include "curlx/warnless.h"
 #include "curl_sha256.h"
@@ -38,8 +38,9 @@
 #include <nettle/sha.h>
 #elif defined(USE_MBEDTLS)
 #include <mbedtls/version.h>
-#if MBEDTLS_VERSION_NUMBER < 0x03020000
-  #error "mbedTLS 3.2.0 or later required"
+#if(MBEDTLS_VERSION_NUMBER >= 0x02070000) && \
+   (MBEDTLS_VERSION_NUMBER < 0x03000000)
+  #define HAS_MBEDTLS_RESULT_CODE_BASED_FUNCTIONS
 #endif
 #include <mbedtls/sha256.h>
 #elif (defined(__MAC_OS_X_VERSION_MAX_ALLOWED) && \
@@ -133,7 +134,11 @@ typedef mbedtls_sha256_context my_sha256_ctx;
 
 static CURLcode my_sha256_init(void *ctx)
 {
-  (void)mbedtls_sha256_starts(ctx, 0);
+#if !defined(HAS_MBEDTLS_RESULT_CODE_BASED_FUNCTIONS)
+  (void) mbedtls_sha256_starts(ctx, 0);
+#else
+  (void) mbedtls_sha256_starts_ret(ctx, 0);
+#endif
   return CURLE_OK;
 }
 
@@ -141,12 +146,20 @@ static void my_sha256_update(void *ctx,
                              const unsigned char *data,
                              unsigned int length)
 {
-  (void)mbedtls_sha256_update(ctx, data, length);
+#if !defined(HAS_MBEDTLS_RESULT_CODE_BASED_FUNCTIONS)
+  (void) mbedtls_sha256_update(ctx, data, length);
+#else
+  (void) mbedtls_sha256_update_ret(ctx, data, length);
+#endif
 }
 
 static void my_sha256_final(unsigned char *digest, void *ctx)
 {
-  (void)mbedtls_sha256_finish(ctx, digest);
+#if !defined(HAS_MBEDTLS_RESULT_CODE_BASED_FUNCTIONS)
+  (void) mbedtls_sha256_finish(ctx, digest);
+#else
+  (void) mbedtls_sha256_finish_ret(ctx, digest);
+#endif
 }
 
 #elif defined(AN_APPLE_OS)
@@ -154,7 +167,7 @@ typedef CC_SHA256_CTX my_sha256_ctx;
 
 static CURLcode my_sha256_init(void *ctx)
 {
-  (void)CC_SHA256_Init(ctx);
+  (void) CC_SHA256_Init(ctx);
   return CURLE_OK;
 }
 
@@ -162,12 +175,12 @@ static void my_sha256_update(void *ctx,
                              const unsigned char *data,
                              unsigned int length)
 {
-  (void)CC_SHA256_Update(ctx, data, length);
+  (void) CC_SHA256_Update(ctx, data, length);
 }
 
 static void my_sha256_final(unsigned char *digest, void *ctx)
 {
-  (void)CC_SHA256_Final(digest, ctx);
+  (void) CC_SHA256_Final(digest, ctx);
 }
 
 #elif defined(USE_WIN32_CRYPTO)
@@ -178,8 +191,7 @@ struct sha256_ctx {
 };
 typedef struct sha256_ctx my_sha256_ctx;
 
-/* Offered when targeting Vista (XP SP2+) */
-#ifndef CALG_SHA_256
+#if !defined(CALG_SHA_256)
 #define CALG_SHA_256 0x0000800c
 #endif
 

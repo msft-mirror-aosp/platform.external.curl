@@ -64,19 +64,6 @@ static int qname(const unsigned char **pkt, size_t *size)
 #define QTYPE_AAAA 28
 #define QTYPE_HTTPS 0x41
 
-static const char *type2string(unsigned short qtype)
-{
-  switch(qtype) {
-  case QTYPE_A:
-    return "A";
-  case QTYPE_AAAA:
-    return "AAAA";
-  case QTYPE_HTTPS:
-    return "HTTPS";
-  }
-  return "<unknown>";
-}
-
 /*
  * Handle initial connection protocol.
  *
@@ -138,7 +125,8 @@ static int store_incoming(const unsigned char *data, size_t size,
   fprintf(server, "Z: %x\n", (id & 0x70) >> 4);
   fprintf(server, "RCODE: %x\n", (id & 0x0f));
 #endif
-  (void) get16bit(&data, &size);
+  qd = get16bit(&data, &size);
+  fprintf(server, "QDCOUNT: %04x\n", qd);
 
   data += 6; /* skip ANCOUNT, NSCOUNT and ARCOUNT */
   size -= 6;
@@ -148,13 +136,14 @@ static int store_incoming(const unsigned char *data, size_t size,
   qptr = data;
 
   if(!qname(&data, &size)) {
+    fprintf(server, "QNAME: %s\n", name);
     qd = get16bit(&data, &size);
-    fprintf(server, "QNAME %s QTYPE %s\n", name, type2string(qd));
+    fprintf(server, "QTYPE: %04x\n", qd);
     *qtype = qd;
-    logmsg("Question for '%s' type %x / %s", name, qd,
-           type2string(qd));
+    logmsg("Question for '%s' type %x", name, qd);
 
-    (void) get16bit(&data, &size);
+    qd = get16bit(&data, &size);
+    logmsg("QCLASS: %04x\n", qd);
 
     *qlen = qsize - size; /* total size of the query */
     memcpy(qbuf, qptr, *qlen);
@@ -488,8 +477,8 @@ static int test_dnsd(int argc, char **argv)
   }
 
   flag = 1;
-  if(setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
-                (void *)&flag, sizeof(flag))) {
+  if(0 != setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
+            (void *)&flag, sizeof(flag))) {
     error = SOCKERRNO;
     logmsg("setsockopt(SO_REUSEADDR) failed with error (%d) %s",
            error, sstrerror(error));
@@ -629,7 +618,8 @@ static int test_dnsd(int argc, char **argv)
       clear_advisor_read_lock(loglockfile);
     }
 
-    /* logmsg("end of one transfer"); */
+    logmsg("end of one transfer");
+
   }
 
 dnsd_cleanup:

@@ -25,7 +25,7 @@
 
 #include "memdebug.h"
 
-static CURLcode test_lib517(const char *URL)
+static CURLcode test_lib517(char *URL)
 {
   struct dcheck {
     const char *input;
@@ -144,35 +144,36 @@ static CURLcode test_lib517(const char *URL)
     {"Thu, 31-Dec-1969 23:59:58 GMT", -2 },
     {"Thu, 31-Dec-1969 23:59:59 GMT", 0 }, /* avoids -1 ! */
 #if SIZEOF_TIME_T > 4
-    {"Sun, 06 Nov 2044 08:49:37 GMT", (time_t)2362034977LL },
+    {"Sun, 06 Nov 2044 08:49:37 GMT", (time_t) 2362034977 },
     {"Sun, 06 Nov 3144 08:49:37 GMT", 37074617377 },
 #ifndef HAVE_TIME_T_UNSIGNED
-    {"Sun, 06 Nov 1900 08:49:37 GMT", (time_t)-2182259423LL },
+#if 0
+    /* causes warning on MSVC */
+    {"Sun, 06 Nov 1900 08:49:37 GMT", -2182259423 },
+#endif
     {"Sun, 06 Nov 1800 08:49:37 GMT", -5337933023 },
     {"Thu, 01-Jan-1583 00:00:00 GMT", -12212553600 },
-#endif /* HAVE_TIME_T_UNSIGNED */
+#endif
     {"Thu, 01-Jan-1499 00:00:00 GMT", -1 },
 #else
     {"Sun, 06 Nov 2044 08:49:37 GMT", -1 },
-#endif /* SIZEOF_TIME_T > 4 */
+#endif
 #ifndef HAVE_TIME_T_UNSIGNED
     {"Sun, 06 Nov 1968 08:49:37 GMT", -36342623 },
-#endif /* !HAVE_TIME_T_UNSIGNED */
+#endif
     { NULL, 0 }
   };
 
   int i;
   int error = 0;
 
-  (void)URL;
+  (void)URL; /* not used */
 
   for(i = 0; dates[i].input; i++) {
     time_t out = curl_getdate(dates[i].input, NULL);
     if(out != dates[i].output) {
-      curl_mprintf("WRONGLY %s => %" CURL_FORMAT_CURL_OFF_T
-                   " (instead of %" CURL_FORMAT_CURL_OFF_T ")\n",
-                   dates[i].input,
-                   (curl_off_t)out, (curl_off_t)dates[i].output);
+      curl_mprintf("WRONGLY %s => %ld (instead of %ld)\n",
+                   dates[i].input, (long)out, (long)dates[i].output);
       error++;
     }
   }

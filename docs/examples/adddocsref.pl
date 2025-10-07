@@ -25,12 +25,9 @@
 
 # pass files as argument(s)
 
-use strict;
-use warnings;
-
 my $docroot="https://curl.se/libcurl/c";
 
-for my $f (@ARGV) {
+for $f (@ARGV) {
     open(NEW, ">$f.new");
     open(F, "<$f");
     while(<F>) {
@@ -39,9 +36,9 @@ for my $f (@ARGV) {
             # just ignore preciously added refs
         }
         elsif($l =~ /^( *).*curl_easy_setopt\([^,]*, *([^ ,]*) *,/) {
-            my ($prefix, $anchor) = ($1, $2);
-            $anchor =~ s/_//g;
-            print NEW "$prefix/* $docroot/curl_easy_setopt.html#$anchor */\n";
+            my ($prefix, $anc) = ($1, $2);
+            $anc =~ s/_//g;
+            print NEW "$prefix/* $docroot/curl_easy_setopt.html#$anc */\n";
             print NEW $l;
         }
         elsif($l =~ /^( *).*(curl_([^\(]*))\(/) {

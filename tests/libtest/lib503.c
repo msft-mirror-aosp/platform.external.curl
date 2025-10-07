@@ -33,7 +33,7 @@
  * auth info.
  */
 
-static CURLcode test_lib503(const char *URL)
+static CURLcode test_lib503(char *URL)
 {
   CURL *c = NULL;
   CURLM *m = NULL;

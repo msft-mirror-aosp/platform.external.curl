@@ -13,15 +13,7 @@
 #
 # ---(accepted word)
 #
-
-use strict;
-use warnings;
-
-my @whitelist;
-my %alt;
-my %exactcase;
-
-my @w;
+my $w;
 while(<STDIN>) {
     chomp;
     if($_ =~ /^#/) {
@@ -40,7 +32,7 @@ while(<STDIN>) {
     }
 }
 
-my $errors = 0;
+my $errors;
 
 sub file {
     my ($f) = @_;

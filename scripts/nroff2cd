@@ -36,9 +36,6 @@ for code.
 =end comment
 =cut
 
-use strict;
-use warnings;
-
 my $nroff2cd = "0.1"; # to keep check
 
 sub single {
@@ -192,6 +189,4 @@ HEAD
     return !$header;
 }
 
-if(@ARGV) {
-  exit single($ARGV[0]);
-}
+exit single($ARGV[0]);

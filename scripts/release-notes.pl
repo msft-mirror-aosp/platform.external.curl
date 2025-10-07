@@ -54,10 +54,7 @@
 #
 ################################################
 
-use strict;
-use warnings;
-
-my $cleanup = (@ARGV && $ARGV[0] eq "cleanup");
+my $cleanup = ($ARGV[0] eq "cleanup");
 my @gitlog=`git log @^{/RELEASE-NOTES:.synced}..` if(!$cleanup);
 my @releasenotes=`cat RELEASE-NOTES`;
 
@@ -123,12 +120,6 @@ sub extract {
     # false alarm, not a valid line
 }
 
-my @fixes;
-my @closes;
-my @bug;
-my @line;
-my %moreinfo;
-
 my $short;
 my $first;
 for my $l (@gitlog) {
@@ -176,7 +167,7 @@ if($first) {
 # call at the end of a parsed commit
 sub onecommit {
     my ($short)=@_;
-    my $ref = '';
+    my $ref;
 
     if($dupe{$short}) {
         # this git commit message was found in the file
@@ -219,9 +210,7 @@ for my $l (@releasenotes) {
 
             push @o, sprintf " o %s%s\n", $f,
                 $moreinfo{$f}? sprintf(" [%d]", $moreinfo{$f}): "";
-            if($moreinfo{$f}) {
-                $refused[$moreinfo{$f}]=3;
-            }
+            $refused[$moreinfo{$f}]=3;
         }
         push @o, " --- new entries are listed above this ---";
         next;

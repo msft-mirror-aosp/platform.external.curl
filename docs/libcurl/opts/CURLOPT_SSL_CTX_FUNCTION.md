@@ -60,9 +60,7 @@ callbacks to add additional validation code for certificates, and even to
 change the actual URI of an HTTPS request.
 
 For OpenSSL, asynchronous certificate verification via *SSL_set_retry_verify*
-is supported. When *SSL_set_retry_verify* is set, the transfer is paused.
-When verification should continue, call curl_easy_pause(3) to unpause
-the transfer. (Added in 8.3.0, Pausing added in 8.16.0)
+is supported. (Added in 8.3.0)
 
 The CURLOPT_SSL_CTX_FUNCTION(3) callback allows the application to reach in
 and modify SSL details in the connection without libcurl itself knowing
@@ -102,12 +100,12 @@ NULL
 #include <curl/curl.h>
 #include <stdio.h>
 
-static CURLcode sslctx_function(CURL *curl, void *sslctx, void *pointer)
+static CURLcode sslctx_function(CURL *curl, void *sslctx, void *parm)
 {
   X509_STORE *store;
   X509 *cert = NULL;
   BIO *bio;
-  char *mypem = pointer;
+  char *mypem = parm;
   /* get a BIO */
   bio = BIO_new_mem_buf(mypem, -1);
   /* use it to read the PEM formatted certificate from memory into an
@@ -136,14 +134,15 @@ int main(void)
 {
   CURL *ch;
   CURLcode rv;
-  char *mypem = /* CA cert in PEM format, replace the XXXs */
+  char *mypem = /* example CA cert PEM - shortened */
     "-----BEGIN CERTIFICATE-----\n"
-    "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n"
-    "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n"
-    "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n"
-    "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n"
-    "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n"
-    "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n"
+    "MIIHPTCCBSWgAwIBAgIBADANBgkqhkiG9w0BAQQFADB5MRAwDgYDVQQKEwdSb290\n"
+    "IENBMR4wHAYDVQQLExVodHRwOi8vd3d3LmNhY2VydC5vcmcxIjAgBgNVBAMTGUNB\n"
+    "IENlcnQgU2lnbmluZyBBdXRob3JpdHkxITAfBgkqhkiG9w0BCQEWEnN1cHBvcnRA\n"
+    "Y2FjZXJ0Lm9yZzAeFw0wMzAzMzAxMjI5NDlaFw0zMzAzMjkxMjI5NDlaMHkxEDAO\n"
+    "GCSNe9FINSkYQKyTYOGWhlC0elnYjyELn8+CkcY7v2vcB5G5l1YjqrZslMZIBjzk\n"
+    "zk6q5PYvCdxTby78dOs6Y5nCpqyJvKeyRKANihDjbPIky/qbn3BHLt4Ui9SyIAmW\n"
+    "omTxJBzcoTWcFbLUvFUufQb1nA5V9FrWk9p2rSVzTMVD\n"
     "-----END CERTIFICATE-----\n";
 
   curl_global_init(CURL_GLOBAL_ALL);

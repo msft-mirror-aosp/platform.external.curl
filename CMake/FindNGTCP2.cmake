@@ -26,12 +26,11 @@
 # This module accepts optional COMPONENTS to control the crypto library (these are
 # mutually exclusive):
 #
-# - BoringSSL:  Use `libngtcp2_crypto_boringssl`. (also for AWS-LC)
-# - GnuTLS:     Use `libngtcp2_crypto_gnutls`.
-# - LibreSSL:   Use `libngtcp2_crypto_libressl`. (requires ngtcp2 1.15.0+)
-# - ossl:       Use `libngtcp2_crypto_ossl`.
-# - quictls:    Use `libngtcp2_crypto_quictls`. (also for LibreSSL with ngtcp2 <1.15.0)
+# - quictls:    Use `libngtcp2_crypto_quictls`.   (choose this for LibreSSL)
+# - BoringSSL:  Use `libngtcp2_crypto_boringssl`. (choose this for AWS-LC)
 # - wolfSSL:    Use `libngtcp2_crypto_wolfssl`.
+# - GnuTLS:     Use `libngtcp2_crypto_gnutls`.
+# - ossl:       Use `libngtcp2_crypto_ossl`.
 #
 # Input variables:
 #
@@ -39,7 +38,6 @@
 # - `NGTCP2_LIBRARY`:                   Path to `ngtcp2` library.
 # - `NGTCP2_CRYPTO_BORINGSSL_LIBRARY`:  Path to `ngtcp2_crypto_boringssl` library.
 # - `NGTCP2_CRYPTO_GNUTLS_LIBRARY`:     Path to `ngtcp2_crypto_gnutls` library.
-# - `NGTCP2_CRYPTO_LIBRESSL_LIBRARY`:   Path to `ngtcp2_crypto_libressl` library.
 # - `NGTCP2_CRYPTO_OSSL_LIBRARY`:       Path to `ngtcp2_crypto_ossl` library.
 # - `NGTCP2_CRYPTO_QUICTLS_LIBRARY`:    Path to `ngtcp2_crypto_quictls` library.
 # - `NGTCP2_CRYPTO_WOLFSSL_LIBRARY`:    Path to `ngtcp2_crypto_wolfssl` library.
@@ -57,7 +55,7 @@
 if(NGTCP2_FIND_COMPONENTS)
   set(_ngtcp2_crypto_backend "")
   foreach(_component IN LISTS NGTCP2_FIND_COMPONENTS)
-    if(_component MATCHES "^(BoringSSL|GnuTLS|LibreSSL|ossl|quictls|wolfSSL)")
+    if(_component MATCHES "^(BoringSSL|GnuTLS|ossl|quictls|wolfSSL)")
       if(_ngtcp2_crypto_backend)
         message(FATAL_ERROR "NGTCP2: Only one crypto library can be selected")
       endif()
@@ -76,13 +74,11 @@ if(_ngtcp2_crypto_backend)
   list(APPEND NGTCP2_PC_REQUIRES "lib${_crypto_library_lower}")
 endif()
 
-set(_tried_pkgconfig FALSE)
 if(CURL_USE_PKGCONFIG AND
    NOT DEFINED NGTCP2_INCLUDE_DIR AND
    NOT DEFINED NGTCP2_LIBRARY)
   find_package(PkgConfig QUIET)
   pkg_check_modules(NGTCP2 ${NGTCP2_PC_REQUIRES})
-  set(_tried_pkgconfig TRUE)
 endif()
 
 if(NGTCP2_FOUND)
@@ -129,9 +125,4 @@ else()
   endif()
 
   mark_as_advanced(NGTCP2_INCLUDE_DIR NGTCP2_LIBRARY NGTCP2_CRYPTO_LIBRARY)
-
-  if(NOT NGTCP2_FOUND AND _tried_pkgconfig)  # reset variables to allow another round of detection
-    unset(NGTCP2_INCLUDE_DIR CACHE)
-    unset(NGTCP2_LIBRARY CACHE)
-  endif()
 endif()

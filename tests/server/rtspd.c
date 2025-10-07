@@ -33,6 +33,9 @@
 #include <netinet/tcp.h> /* for TCP_NODELAY */
 #endif
 
+#undef REQBUFSIZ
+#define REQBUFSIZ 150000
+
 static long rtspd_prevtestno = -1;    /* previous test number we served */
 static long rtspd_prevpartno = -1;    /* previous part number we served */
 static bool rtspd_prevbounce = FALSE; /* instructs the server to override the
@@ -56,7 +59,7 @@ typedef enum {
                               ((p)[3] = (char)((l) & 0xFF)))
 
 struct rtspd_httprequest {
-  char reqbuf[150000]; /* buffer area for the incoming request */
+  char reqbuf[REQBUFSIZ]; /* buffer area for the incoming request */
   size_t checkindex; /* where to start checking of the request */
   size_t offset;     /* size of the incoming request */
   long testno;       /* test number found in the request */
@@ -120,22 +123,22 @@ static const char *docbadconnect =
 
 /* send back this on HTTP 404 file not found */
 static const char *doc404_HTTP = "HTTP/1.1 404 Not Found\r\n"
-  "Server: " RTSPDVERSION "\r\n"
-  "Connection: close\r\n"
-  "Content-Type: text/html"
-  END_OF_HEADERS
-  "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n"
-  "<HTML><HEAD>\n"
-  "<TITLE>404 Not Found</TITLE>\n"
-  "</HEAD><BODY>\n"
-  "<H1>Not Found</H1>\n"
-  "The requested URL was not found on this server.\n"
-  "<P><HR><ADDRESS>" RTSPDVERSION "</ADDRESS>\n" "</BODY></HTML>\n";
+    "Server: " RTSPDVERSION "\r\n"
+    "Connection: close\r\n"
+    "Content-Type: text/html"
+    END_OF_HEADERS
+    "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n"
+    "<HTML><HEAD>\n"
+    "<TITLE>404 Not Found</TITLE>\n"
+    "</HEAD><BODY>\n"
+    "<H1>Not Found</H1>\n"
+    "The requested URL was not found on this server.\n"
+    "<P><HR><ADDRESS>" RTSPDVERSION "</ADDRESS>\n" "</BODY></HTML>\n";
 
 /* send back this on RTSP 404 file not found */
 static const char *doc404_RTSP = "RTSP/1.0 404 Not Found\r\n"
-  "Server: " RTSPDVERSION
-  END_OF_HEADERS;
+    "Server: " RTSPDVERSION
+    END_OF_HEADERS;
 
 /* Default size to send away fake RTP data */
 #define RTP_DATA_SIZE 12
@@ -269,7 +272,7 @@ static int rtspd_ProcessRequest(struct rtspd_httprequest *req)
               logmsg("instructed to stream");
               req->rcmd = RCMD_STREAM;
             }
-            else if(sscanf(ptr, "pipe: %d", &num) == 1) {
+            else if(1 == sscanf(ptr, "pipe: %d", &num)) {
               logmsg("instructed to allow a pipe size of %d", num);
               if(num < 0)
                 logmsg("negative pipe size ignored");
@@ -277,7 +280,7 @@ static int rtspd_ProcessRequest(struct rtspd_httprequest *req)
                 req->pipe = num-1; /* decrease by one since we don't count the
                                       first request in this number */
             }
-            else if(sscanf(ptr, "skip: %d", &num) == 1) {
+            else if(1 == sscanf(ptr, "skip: %d", &num)) {
               logmsg("instructed to skip this number of bytes %d", num);
               req->skip = num;
             }
@@ -618,7 +621,7 @@ static int rtspd_get_request(curl_socket_t sock, struct rtspd_httprequest *req)
 
   /*** end of httprequest init ***/
 
-  while(!done_processing && (req->offset < sizeof(req->reqbuf)-1)) {
+  while(!done_processing && (req->offset < REQBUFSIZ-1)) {
     if(pipereq_length && pipereq) {
       memmove(reqbuf, pipereq, pipereq_length);
       got = curlx_uztosz(pipereq_length);
@@ -631,8 +634,7 @@ static int rtspd_get_request(curl_socket_t sock, struct rtspd_httprequest *req)
            client wants to send! */
         got = sread(sock, reqbuf + req->offset, req->cl);
       else
-        got = sread(sock, reqbuf + req->offset,
-                    sizeof(req->reqbuf)-1 - req->offset);
+        got = sread(sock, reqbuf + req->offset, REQBUFSIZ-1 - req->offset);
     }
     if(got_exit_signal)
       return 1;
@@ -667,16 +669,16 @@ static int rtspd_get_request(curl_socket_t sock, struct rtspd_httprequest *req)
     }
   }
 
-  if((req->offset == sizeof(req->reqbuf)-1) && (got > 0)) {
+  if((req->offset == REQBUFSIZ-1) && (got > 0)) {
     logmsg("Request would overflow buffer, closing connection");
     /* dump request received so far to external file anyway */
-    reqbuf[sizeof(req->reqbuf)-1] = '\0';
+    reqbuf[REQBUFSIZ-1] = '\0';
     fail = 1;
   }
-  else if(req->offset > sizeof(req->reqbuf)-1) {
+  else if(req->offset > REQBUFSIZ-1) {
     logmsg("Request buffer overflow, closing connection");
     /* dump request received so far to external file anyway */
-    reqbuf[sizeof(req->reqbuf)-1] = '\0';
+    reqbuf[REQBUFSIZ-1] = '\0';
     fail = 1;
   }
   else
@@ -716,19 +718,19 @@ static int rtspd_send_doc(curl_socket_t sock, struct rtspd_httprequest *req)
   default:
   case RCMD_NORMALREQ:
     break; /* continue with business as usual */
-  case RCMD_STREAM: {
-    static const char streamthis[] = "a string to stream 01234567890\n";
+  case RCMD_STREAM:
+#define STREAMTHIS "a string to stream 01234567890\n"
+    count = strlen(STREAMTHIS);
     for(;;) {
-      written = swrite(sock, streamthis, sizeof(streamthis)-1);
+      written = swrite(sock, STREAMTHIS, count);
       if(got_exit_signal)
         return -1;
-      if(written != (ssize_t)(sizeof(streamthis)-1)) {
+      if(written != (ssize_t)count) {
         logmsg("Stopped streaming");
         break;
       }
     }
     return -1;
-  }
   case RCMD_IDLE:
     /* Do nothing. Sit idle. Pretend it rains. */
     return 0;
@@ -784,7 +786,7 @@ static int rtspd_send_doc(curl_socket_t sock, struct rtspd_httprequest *req)
   else {
     FILE *stream = test2fopen(req->testno, logdir);
     char partbuf[80]="data";
-    if(req->partno)
+    if(0 != req->partno)
       snprintf(partbuf, sizeof(partbuf), "data%ld", req->partno);
     if(!stream) {
       error = errno;
@@ -935,7 +937,7 @@ static int rtspd_send_doc(curl_socket_t sock, struct rtspd_httprequest *req)
     int num;
     ptr = cmd;
     do {
-      if(sscanf(ptr, "%31s %d", command, &num) == 2) {
+      if(2 == sscanf(ptr, "%31s %d", command, &num)) {
         if(!strcmp("wait", command)) {
           logmsg("Told to sleep for %d seconds", num);
           quarters = num * 4;
@@ -1099,8 +1101,8 @@ static int test_rtspd(int argc, char *argv[])
   }
 
   flag = 1;
-  if(setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
-                (void *)&flag, sizeof(flag))) {
+  if(0 != setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
+            (void *)&flag, sizeof(flag))) {
     error = SOCKERRNO;
     logmsg("setsockopt(SO_REUSEADDR) failed with error (%d) %s",
            error, sstrerror(error));
@@ -1224,7 +1226,7 @@ static int test_rtspd(int argc, char *argv[])
 
     logmsg("====> Client connect");
 
-#if defined(TCP_NODELAY) && !defined(__EMSCRIPTEN__)
+#ifdef TCP_NODELAY
     /*
      * Disable the Nagle algorithm to make it easier to send out a large
      * response in many small segments to torture the clients more.

@@ -24,8 +24,7 @@
 
 #include "../curl_setup.h"
 
-#if !defined(CURL_DISABLE_HTTP) && defined(USE_OPENSSL_QUIC) && \
-  defined(USE_NGHTTP3)
+#if defined(USE_OPENSSL_QUIC) && defined(USE_NGHTTP3)
 
 #include <openssl/ssl.h>
 #include <openssl/bio.h>
@@ -119,17 +118,17 @@ static const char *osslq_SSL_ERROR_to_str(int err)
     return "SSL_ERROR_WANT_CONNECT";
   case SSL_ERROR_WANT_ACCEPT:
     return "SSL_ERROR_WANT_ACCEPT";
-#ifdef SSL_ERROR_WANT_ASYNC  /* OpenSSL 1.1.0+, LibreSSL 3.6.0+ */
+#if defined(SSL_ERROR_WANT_ASYNC)
   case SSL_ERROR_WANT_ASYNC:
     return "SSL_ERROR_WANT_ASYNC";
 #endif
-#ifdef SSL_ERROR_WANT_ASYNC_JOB  /* OpenSSL 1.1.0+, LibreSSL 3.6.0+ */
+#if defined(SSL_ERROR_WANT_ASYNC_JOB)
   case SSL_ERROR_WANT_ASYNC_JOB:
     return "SSL_ERROR_WANT_ASYNC_JOB";
 #endif
-#ifdef SSL_ERROR_WANT_CLIENT_HELLO_CB  /* OpenSSL 1.1.1, LibreSSL 3.6.0+ */
-  case SSL_ERROR_WANT_CLIENT_HELLO_CB:
-    return "SSL_ERROR_WANT_CLIENT_HELLO_CB";
+#if defined(SSL_ERROR_WANT_EARLY)
+  case SSL_ERROR_WANT_EARLY:
+    return "SSL_ERROR_WANT_EARLY";
 #endif
   default:
     return "SSL_ERROR unknown";
@@ -160,11 +159,11 @@ static char *osslq_strerror(unsigned long error, char *buf, size_t size)
 static CURLcode make_bio_addr(BIO_ADDR **pbio_addr,
                               const struct Curl_sockaddr_ex *addr)
 {
-  BIO_ADDR *bio_addr;
+  BIO_ADDR *ba;
   CURLcode result = CURLE_FAILED_INIT;
 
-  bio_addr = BIO_ADDR_new();
-  if(!bio_addr) {
+  ba = BIO_ADDR_new();
+  if(!ba) {
     result = CURLE_OUT_OF_MEMORY;
     goto out;
   }
@@ -173,7 +172,7 @@ static CURLcode make_bio_addr(BIO_ADDR **pbio_addr,
   case AF_INET: {
     struct sockaddr_in * const sin =
       (struct sockaddr_in * const)CURL_UNCONST(&addr->curl_sa_addr);
-    if(!BIO_ADDR_rawmake(bio_addr, AF_INET, &sin->sin_addr,
+    if(!BIO_ADDR_rawmake(ba, AF_INET, &sin->sin_addr,
                          sizeof(sin->sin_addr), sin->sin_port)) {
       goto out;
     }
@@ -184,7 +183,7 @@ static CURLcode make_bio_addr(BIO_ADDR **pbio_addr,
   case AF_INET6: {
     struct sockaddr_in6 * const sin =
       (struct sockaddr_in6 * const)CURL_UNCONST(&addr->curl_sa_addr);
-    if(!BIO_ADDR_rawmake(bio_addr, AF_INET6, &sin->sin6_addr,
+    if(!BIO_ADDR_rawmake(ba, AF_INET6, &sin->sin6_addr,
                          sizeof(sin->sin6_addr), sin->sin6_port)) {
     }
     result = CURLE_OK;
@@ -198,11 +197,11 @@ static CURLcode make_bio_addr(BIO_ADDR **pbio_addr,
   }
 
 out:
-  if(result && bio_addr) {
-    BIO_ADDR_free(bio_addr);
-    bio_addr = NULL;
+  if(result && ba) {
+    BIO_ADDR_free(ba);
+    ba = NULL;
   }
-  *pbio_addr = bio_addr;
+  *pbio_addr = ba;
   return result;
 }
 
@@ -514,7 +513,7 @@ static CURLcode cf_osslq_ssl_err(struct Curl_cfilter *cf,
     else
       err_descr = "SSL certificate verification failed";
   }
-#ifdef SSL_R_TLSV13_ALERT_CERTIFICATE_REQUIRED
+#if defined(SSL_R_TLSV13_ALERT_CERTIFICATE_REQUIRED)
   /* SSL_R_TLSV13_ALERT_CERTIFICATE_REQUIRED is only available on
      OpenSSL version above v1.1.1, not LibreSSL, BoringSSL, or AWS-LC */
   else if((lib == ERR_LIB_SSL) &&
@@ -1087,12 +1086,7 @@ static nghttp3_callbacks ngh3_callbacks = {
   NULL, /* end_stream */
   cb_h3_reset_stream,
   NULL, /* shutdown */
-  NULL, /* recv_settings */
-#ifdef NGHTTP3_CALLBACKS_V2
-  NULL, /* recv_origin */
-  NULL, /* end_origin */
-  NULL, /* rand */
-#endif
+  NULL /* recv_settings */
 };
 
 static CURLcode cf_osslq_h3conn_init(struct cf_osslq_ctx *ctx, SSL *conn,
@@ -1106,7 +1100,7 @@ static CURLcode cf_osslq_h3conn_init(struct cf_osslq_ctx *ctx, SSL *conn,
   rc = nghttp3_conn_client_new(&h3->conn,
                                &ngh3_callbacks,
                                &h3->settings,
-                               Curl_nghttp3_mem(),
+                               nghttp3_mem_default(),
                                user_data);
   if(rc) {
     result = CURLE_OUT_OF_MEMORY;
@@ -1802,6 +1796,7 @@ static CURLcode cf_osslq_connect(struct Curl_cfilter *cf,
     if(!result) {
       CURL_TRC_CF(data, cf, "peer verified");
       cf->connected = TRUE;
+      cf->conn->alpn = CURL_HTTP_VERSION_3;
       *done = TRUE;
       connkeep(cf->conn, "HTTP/3 default");
     }
@@ -2168,9 +2163,9 @@ static bool cf_osslq_data_pending(struct Curl_cfilter *cf,
   return stream && !Curl_bufq_is_empty(&stream->recvbuf);
 }
 
-static CURLcode cf_osslq_cntrl(struct Curl_cfilter *cf,
-                               struct Curl_easy *data,
-                               int event, int arg1, void *arg2)
+static CURLcode cf_osslq_data_event(struct Curl_cfilter *cf,
+                                    struct Curl_easy *data,
+                                    int event, int arg1, void *arg2)
 {
   struct cf_osslq_ctx *ctx = cf->ctx;
   CURLcode result = CURLE_OK;
@@ -2206,10 +2201,6 @@ static CURLcode cf_osslq_cntrl(struct Curl_cfilter *cf,
     }
     break;
   }
-  case CF_CTRL_CONN_INFO_UPDATE:
-    if(!cf->sockindex && cf->connected)
-      cf->conn->httpversion_seen = 30;
-    break;
   default:
     break;
   }
@@ -2270,12 +2261,11 @@ out:
   return alive;
 }
 
-static CURLcode cf_osslq_adjust_pollset(struct Curl_cfilter *cf,
-                                        struct Curl_easy *data,
-                                        struct easy_pollset *ps)
+static void cf_osslq_adjust_pollset(struct Curl_cfilter *cf,
+                                    struct Curl_easy *data,
+                                    struct easy_pollset *ps)
 {
   struct cf_osslq_ctx *ctx = cf->ctx;
-  CURLcode result = CURLE_OK;
 
   if(!ctx->tls.ossl.ssl) {
     /* NOP */
@@ -2283,9 +2273,9 @@ static CURLcode cf_osslq_adjust_pollset(struct Curl_cfilter *cf,
   else if(!cf->connected) {
     /* during handshake, transfer has not started yet. we always
      * add our socket for polling if SSL wants to send/recv */
-    result = Curl_pollset_set(data, ps, ctx->q.sockfd,
-                              SSL_net_read_desired(ctx->tls.ossl.ssl),
-                              SSL_net_write_desired(ctx->tls.ossl.ssl));
+    Curl_pollset_set(data, ps, ctx->q.sockfd,
+                     SSL_net_read_desired(ctx->tls.ossl.ssl),
+                     SSL_net_write_desired(ctx->tls.ossl.ssl));
   }
   else {
     /* once connected, we only modify the socket if it is present.
@@ -2293,16 +2283,15 @@ static CURLcode cf_osslq_adjust_pollset(struct Curl_cfilter *cf,
     bool want_recv, want_send;
     Curl_pollset_check(data, ps, ctx->q.sockfd, &want_recv, &want_send);
     if(want_recv || want_send) {
-      result = Curl_pollset_set(data, ps, ctx->q.sockfd,
-                                SSL_net_read_desired(ctx->tls.ossl.ssl),
-                                SSL_net_write_desired(ctx->tls.ossl.ssl));
+      Curl_pollset_set(data, ps, ctx->q.sockfd,
+                       SSL_net_read_desired(ctx->tls.ossl.ssl),
+                       SSL_net_write_desired(ctx->tls.ossl.ssl));
     }
     else if(ctx->need_recv || ctx->need_send) {
-      result = Curl_pollset_set(data, ps, ctx->q.sockfd,
-                                ctx->need_recv, ctx->need_send);
+      Curl_pollset_set(data, ps, ctx->q.sockfd,
+                       ctx->need_recv, ctx->need_send);
     }
   }
-  return result;
 }
 
 static CURLcode cf_osslq_query(struct Curl_cfilter *cf,
@@ -2358,15 +2347,9 @@ static CURLcode cf_osslq_query(struct Curl_cfilter *cf,
   case CF_QUERY_SSL_CTX_INFO: {
     struct curl_tlssessioninfo *info = pres2;
     if(Curl_vquic_tls_get_ssl_info(&ctx->tls,
-                                   (query == CF_QUERY_SSL_CTX_INFO), info))
+                                   (query == CF_QUERY_SSL_INFO), info))
       return CURLE_OK;
     break;
-  }
-  case CF_QUERY_ALPN_NEGOTIATED: {
-    const char **palpn = pres2;
-    DEBUGASSERT(palpn);
-    *palpn = cf->connected ? "h3" : NULL;
-    return CURLE_OK;
   }
   default:
     break;
@@ -2388,7 +2371,7 @@ struct Curl_cftype Curl_cft_http3 = {
   cf_osslq_data_pending,
   cf_osslq_send,
   cf_osslq_recv,
-  cf_osslq_cntrl,
+  cf_osslq_data_event,
   cf_osslq_conn_is_alive,
   Curl_cf_def_conn_keep_alive,
   cf_osslq_query,
@@ -2460,4 +2443,4 @@ void Curl_osslq_ver(char *p, size_t len)
   (void)msnprintf(p, len, "nghttp3/%s", ht3->version_str);
 }
 
-#endif /* !CURL_DISABLE_HTTP && USE_OPENSSL_QUIC && USE_NGHTTP3 */
+#endif /* USE_OPENSSL_QUIC && USE_NGHTTP3 */

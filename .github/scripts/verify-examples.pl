@@ -23,15 +23,12 @@
 #
 ###########################################################################
 
-use strict;
-use warnings;
-
 my @files = @ARGV;
 my $cfile = "test.c";
 my $check = "./scripts/checksrc.pl";
-my $error = 0;
+my $error;
 
-if(!@files || $files[0] eq "-h") {
+if($files[0] eq "-h") {
     print "Usage: verify-examples [markdown pages]\n";
     exit;
 }
@@ -85,7 +82,7 @@ sub extract {
     return ($fail ? 0 : $l);
 }
 
-my $count = 0;
+my $count;
 for my $m (@files) {
     #print "Verify $m\n";
     my $out = extract($m);

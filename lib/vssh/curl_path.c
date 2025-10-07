@@ -24,7 +24,7 @@
 
 #include "../curl_setup.h"
 
-#ifdef USE_SSH
+#if defined(USE_SSH)
 
 #include "curl_path.h"
 #include <curl/curl.h>

@@ -32,11 +32,11 @@
 struct Curl_easy;
 struct connectdata;
 
-#ifndef CURL_DISABLE_DIGEST_AUTH
+#if !defined(CURL_DISABLE_DIGEST_AUTH)
 struct digestdata;
 #endif
 
-#ifdef USE_NTLM
+#if defined(USE_NTLM)
 struct ntlmdata;
 #endif
 
@@ -44,7 +44,7 @@ struct ntlmdata;
 struct negotiatedata;
 #endif
 
-#ifdef USE_GSASL
+#if defined(USE_GSASL)
 struct gsasldata;
 #endif
 
@@ -60,7 +60,7 @@ struct gsasldata;
 bool Curl_auth_allowed_to_host(struct Curl_easy *data);
 
 /* This is used to build an SPN string */
-#ifndef USE_WINDOWS_SSPI
+#if !defined(USE_WINDOWS_SSPI)
 char *Curl_auth_build_spn(const char *service, const char *host,
                           const char *realm);
 #else
@@ -153,7 +153,7 @@ CURLcode Curl_auth_gsasl_token(struct Curl_easy *data,
 void Curl_auth_gsasl_cleanup(struct gsasldata *digest);
 #endif
 
-#ifdef USE_NTLM
+#if defined(USE_NTLM)
 
 /* meta key for storing NTML meta at connection */
 #define CURL_META_NTLM_CONN   "meta:auth:ntml:conn"
@@ -231,7 +231,7 @@ CURLcode Curl_auth_create_xoauth_bearer_message(const char *user,
                                                 const char *bearer,
                                                 struct bufref *out);
 
-#ifdef USE_KERBEROS5
+#if defined(USE_KERBEROS5)
 
 #ifdef HAVE_GSSAPI
 # ifdef HAVE_GSSGNU
@@ -250,7 +250,7 @@ CURLcode Curl_auth_create_xoauth_bearer_message(const char *user,
 #define CURL_META_KRB5_CONN   "meta:auth:krb5:conn"
 
 struct kerberos5data {
-#ifdef USE_WINDOWS_SSPI
+#if defined(USE_WINDOWS_SSPI)
   CredHandle *credentials;
   CtxtHandle *context;
   TCHAR *spn;

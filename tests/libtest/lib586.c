@@ -30,7 +30,7 @@
 /* struct containing data of a thread */
 struct t586_Tdata {
   CURLSH *share;
-  const char *url;
+  char *url;
 };
 
 struct t586_userdata {
@@ -62,7 +62,7 @@ static void t586_test_lock(CURL *handle, curl_lock_data data,
       what = "ssl_session";
       break;
     default:
-      curl_mfprintf(stderr, "lock: no such data: %d\n", data);
+      curl_mfprintf(stderr, "lock: no such data: %d\n", (int)data);
       return;
   }
   curl_mprintf("lock:   %-6s [%s]: %d\n", what, user->text, user->counter);
@@ -89,7 +89,7 @@ static void t586_test_unlock(CURL *handle, curl_lock_data data, void *useptr)
       what = "ssl_session";
       break;
     default:
-      curl_mfprintf(stderr, "unlock: no such data: %d\n", data);
+      curl_mfprintf(stderr, "unlock: no such data: %d\n", (int)data);
       return;
   }
   curl_mprintf("unlock: %-6s [%s]: %d\n", what, user->text, user->counter);
@@ -120,7 +120,7 @@ static void *t586_test_fire(void *ptr)
   if(code != CURLE_OK) {
     int i = 0;
     curl_mfprintf(stderr, "perform url '%s' repeat %d failed, curlcode %d\n",
-                  tdata->url, i, code);
+                  tdata->url, i, (int)code);
   }
 
   curl_mprintf("CLEANUP\n");
@@ -130,10 +130,11 @@ static void *t586_test_fire(void *ptr)
 }
 
 /* test function */
-static CURLcode test_lib586(const char *URL)
+static CURLcode test_lib586(char *URL)
 {
   CURLcode res = CURLE_OK;
   CURLSHcode scode = CURLSHE_OK;
+  char *url;
   struct t586_Tdata tdata;
   CURL *curl;
   CURLSH *share;
@@ -207,7 +208,8 @@ static CURLcode test_lib586(const char *URL)
     return TEST_ERR_MAJOR_BAD;
   }
 
-  test_setopt(curl, CURLOPT_URL, URL);
+  url = URL;
+  test_setopt(curl, CURLOPT_URL, url);
   curl_mprintf("CURLOPT_SHARE\n");
   test_setopt(curl, CURLOPT_SHARE, share);
 
@@ -236,7 +238,7 @@ test_cleanup:
   scode = curl_share_cleanup(share);
   if(scode != CURLSHE_OK)
     curl_mfprintf(stderr, "curl_share_cleanup failed, code errno %d\n",
-                  scode);
+                  (int)scode);
 
   curl_mprintf("GLOBAL_CLEANUP\n");
   curl_global_cleanup();

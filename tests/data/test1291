@@ -15,6 +15,9 @@ HTTP PUT
 
 # Client-side
 <client>
+<server>
+none
+</server>
 <name>
 Attempt to upload 1000 files but fail immediately
 </name>

@@ -23,13 +23,10 @@
 #
 ###########################################################################
 
-use strict;
-use warnings;
-
 my @files = @ARGV;
 my $cfile = "test.c";
 
-if(!@files || $files[0] eq "-h") {
+if($files[0] eq "-h") {
     print "Usage: verify-synopsis [man pages]\n";
     exit;
 }

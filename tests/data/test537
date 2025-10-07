@@ -40,7 +40,7 @@ lib%TESTNUMBER
 # precheck is a command line to run before the test, to see if we can execute
 # the test or not
 <precheck>
-%LIBTESTS lib%TESTNUMBER check
+./libtest/lib%TESTNUMBER check
 </precheck>
 
 <name>

@@ -321,7 +321,7 @@ ParameterError secs2ms(long *valp, const char *str)
 {
   curl_off_t secs;
   long ms = 0;
-  const unsigned int digs[] = { 1, 10, 100, 1000, 10000, 100000,
+  const unsigned int digs[] = { 1, 10, 100, 1000, 10000, 1000000,
     1000000, 10000000, 100000000 };
   if(!str ||
      curlx_str_number(&str, &secs, LONG_MAX/1000 - 1))
@@ -334,7 +334,7 @@ ParameterError secs2ms(long *valp, const char *str)
       return PARAM_NUMBER_TOO_LARGE;
     /* how many milliseconds are in fracs ? */
     len = (str - s);
-    while((len > CURL_ARRAYSIZE(digs) || (fracs > LONG_MAX/100))) {
+    while((len > sizeof(CURL_ARRAYSIZE(digs)) || (fracs > LONG_MAX/100))) {
       fracs /= 10;
       len--;
     }
@@ -405,7 +405,8 @@ static void protoset_clear(const char **protoset, const char *proto)
 
 #define MAX_PROTOSTRING (64*11) /* Enough room for 64 10-chars proto names. */
 
-ParameterError proto2num(const char * const *val, char **ostr, const char *str)
+ParameterError proto2num(struct OperationConfig *config,
+                         const char * const *val, char **ostr, const char *str)
 {
   const char **protoset;
   struct dynbuf obuf;
@@ -496,7 +497,7 @@ ParameterError proto2num(const char * const *val, char **ostr, const char *str)
            if no protocols are allowed */
         if(action == set)
           protoset[0] = NULL;
-        warnf("unrecognized protocol '%s'", buffer);
+        warnf(config->global, "unrecognized protocol '%s'", buffer);
       }
     }
     if(next)
@@ -619,7 +620,7 @@ ParameterError add2list(struct curl_slist **list, const char *ptr)
   return PARAM_OK;
 }
 
-long ftpfilemethod(const char *str)
+int ftpfilemethod(struct OperationConfig *config, const char *str)
 {
   if(curl_strequal("singlecwd", str))
     return CURLFTPMETHOD_SINGLECWD;
@@ -628,24 +629,26 @@ long ftpfilemethod(const char *str)
   if(curl_strequal("multicwd", str))
     return CURLFTPMETHOD_MULTICWD;
 
-  warnf("unrecognized ftp file method '%s', using default", str);
+  warnf(config->global, "unrecognized ftp file method '%s', using default",
+        str);
 
   return CURLFTPMETHOD_MULTICWD;
 }
 
-long ftpcccmethod(const char *str)
+int ftpcccmethod(struct OperationConfig *config, const char *str)
 {
   if(curl_strequal("passive", str))
     return CURLFTPSSL_CCC_PASSIVE;
   if(curl_strequal("active", str))
     return CURLFTPSSL_CCC_ACTIVE;
 
-  warnf("unrecognized ftp CCC method '%s', using default", str);
+  warnf(config->global, "unrecognized ftp CCC method '%s', using default",
+        str);
 
   return CURLFTPSSL_CCC_PASSIVE;
 }
 
-long delegation(const char *str)
+long delegation(struct OperationConfig *config, const char *str)
 {
   if(curl_strequal("none", str))
     return CURLGSSAPI_DELEGATION_NONE;
@@ -654,7 +657,8 @@ long delegation(const char *str)
   if(curl_strequal("always", str))
     return CURLGSSAPI_DELEGATION_FLAG;
 
-  warnf("unrecognized delegation method '%s', using none", str);
+  warnf(config->global, "unrecognized delegation method '%s', using none",
+        str);
 
   return CURLGSSAPI_DELEGATION_NONE;
 }
@@ -718,7 +722,7 @@ CURLcode get_args(struct OperationConfig *config, const size_t i)
   if(!result && !config->useragent) {
     config->useragent = my_useragent();
     if(!config->useragent) {
-      errorf("out of memory");
+      errorf(config->global, "out of memory");
       result = CURLE_OUT_OF_MEMORY;
     }
   }
@@ -735,17 +739,17 @@ CURLcode get_args(struct OperationConfig *config, const size_t i)
  * data.
  */
 
-ParameterError str2tls_max(unsigned char *val, const char *str)
+ParameterError str2tls_max(long *val, const char *str)
 {
-  static struct s_tls_max {
+   static struct s_tls_max {
     const char *tls_max_str;
-    unsigned char tls_max;
+    long tls_max;
   } const tls_max_array[] = {
-    { "default", 0 }, /* lets the library decide */
-    { "1.0",     1 },
-    { "1.1",     2 },
-    { "1.2",     3 },
-    { "1.3",     4 }
+    { "default", CURL_SSLVERSION_MAX_DEFAULT },
+    { "1.0",     CURL_SSLVERSION_MAX_TLSv1_0 },
+    { "1.1",     CURL_SSLVERSION_MAX_TLSv1_1 },
+    { "1.2",     CURL_SSLVERSION_MAX_TLSv1_2 },
+    { "1.3",     CURL_SSLVERSION_MAX_TLSv1_3 }
   };
   size_t i = 0;
   if(!str)

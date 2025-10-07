@@ -10,6 +10,9 @@ managen
 #
 # Client-side
 <client>
+<server>
+none
+</server>
 
 <name>
 managen makes manpage

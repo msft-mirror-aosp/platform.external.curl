@@ -204,7 +204,7 @@ size_t tool_mime_stdin_read(char *buffer,
 {
   struct tool_mime *sip = (struct tool_mime *) arg;
   curl_off_t bytesleft;
-  (void)size;  /* Always 1: ignored. */
+  (void) size;  /* Always 1: ignored. */
 
   if(sip->size >= 0) {
     if(sip->curpos >= sip->size)
@@ -223,7 +223,10 @@ size_t tool_mime_stdin_read(char *buffer,
       nitems = fread(buffer, 1, nitems, stdin);
       if(ferror(stdin)) {
         /* Show error only once. */
-        warnf("stdin: %s", strerror(errno));
+        if(sip->global) {
+          warnf(sip->global, "stdin: %s", strerror(errno));
+          sip->global = NULL;
+        }
         return CURL_READFUNC_ABORT;
       }
     }
@@ -342,10 +345,11 @@ CURLcode tool2curlmime(CURL *curl, struct tool_mime *m, curl_mime **mime)
 
 /*
  * helper function to get a word from form param
- * after call get_param_word, str either point to string end
+ * after call get_parm_word, str either point to string end
  * or point to any of end chars.
  */
-static char *get_param_word(char **str, char **end_pos, char endchar)
+static char *get_param_word(struct OperationConfig *config, char **str,
+                            char **end_pos, char endchar)
 {
   char *ptr = *str;
   /* the first non-space char is here */
@@ -387,7 +391,7 @@ static char *get_param_word(char **str, char **end_pos, char endchar)
           ++ptr;
         }
         if(trailing_data)
-          warnf("Trailing data after quoted form parameter");
+          warnf(config->global, "Trailing data after quoted form parameter");
         *str = ptr;
         return word_begin + 1;
       }
@@ -416,7 +420,8 @@ static int slist_append(struct curl_slist **plist, const char *data)
 }
 
 /* Read headers from a file and append to list. */
-static int read_field_headers(const char *filename, FILE *fp,
+static int read_field_headers(struct OperationConfig *config,
+                              const char *filename, FILE *fp,
                               struct curl_slist **pheaders)
 {
   size_t hdrlen = 0;
@@ -434,7 +439,7 @@ static int read_field_headers(const char *filename, FILE *fp,
       if(hdrlen) {
         hdrbuf[hdrlen] = '\0';
         if(slist_append(pheaders, hdrbuf)) {
-          errorf("Out of memory for field headers");
+          errorf(config->global, "Out of memory for field headers");
           return -1;
         }
         hdrlen = 0;
@@ -444,7 +449,7 @@ static int read_field_headers(const char *filename, FILE *fp,
     switch(c) {
     case EOF:
       if(ferror(fp)) {
-        errorf("Header file %s read error: %s", filename,
+        errorf(config->global, "Header file %s read error: %s", filename,
                strerror(errno));
         return -1;
       }
@@ -465,7 +470,7 @@ static int read_field_headers(const char *filename, FILE *fp,
     pos++;
     if(!incomment) {
       if(hdrlen == sizeof(hdrbuf) - 1) {
-        warnf("File %s line %d: header too long (truncated)",
+        warnf(config->global, "File %s line %d: header too long (truncated)",
               filename, lineno);
         c = ' ';
       }
@@ -476,7 +481,7 @@ static int read_field_headers(const char *filename, FILE *fp,
   /* NOTREACHED */
 }
 
-static int get_param_part(char endchar,
+static int get_param_part(struct OperationConfig *config, char endchar,
                           char **str, char **pdata, char **ptype,
                           char **pfilename, char **pencoder,
                           struct curl_slist **pheaders)
@@ -502,7 +507,7 @@ static int get_param_part(char endchar,
   while(ISBLANK(*p))
     p++;
   tp = p;
-  *pdata = get_param_word(&p, &endpos, endchar);
+  *pdata = get_param_word(config, &p, &endpos, endchar);
   /* If not quoted, strip trailing spaces. */
   if(*pdata == tp)
     while(endpos > *pdata && ISBLANK(endpos[-1]))
@@ -534,7 +539,7 @@ static int get_param_part(char endchar,
       for(p += 9; ISBLANK(*p); p++)
         ;
       tp = p;
-      filename = get_param_word(&p, &endpos, endchar);
+      filename = get_param_word(config, &p, &endpos, endchar);
       /* If not quoted, strip trailing spaces. */
       if(filename == tp)
         while(endpos > filename && ISBLANK(endpos[-1]))
@@ -556,7 +561,7 @@ static int get_param_part(char endchar,
           p++;
         } while(ISBLANK(*p));
         tp = p;
-        hdrfile = get_param_word(&p, &endpos, endchar);
+        hdrfile = get_param_word(config, &p, &endpos, endchar);
         /* If not quoted, strip trailing spaces. */
         if(hdrfile == tp)
           while(endpos > hdrfile && ISBLANK(endpos[-1]))
@@ -565,10 +570,10 @@ static int get_param_part(char endchar,
         *endpos = '\0';
         fp = fopen(hdrfile, FOPEN_READTEXT);
         if(!fp)
-          warnf("Cannot read from %s: %s", hdrfile,
+          warnf(config->global, "Cannot read from %s: %s", hdrfile,
                 strerror(errno));
         else {
-          int i = read_field_headers(hdrfile, fp, &headers);
+          int i = read_field_headers(config, hdrfile, fp, &headers);
 
           fclose(fp);
           if(i) {
@@ -583,7 +588,7 @@ static int get_param_part(char endchar,
         while(ISBLANK(*p))
           p++;
         tp = p;
-        hdr = get_param_word(&p, &endpos, endchar);
+        hdr = get_param_word(config, &p, &endpos, endchar);
         /* If not quoted, strip trailing spaces. */
         if(hdr == tp)
           while(endpos > hdr && ISBLANK(endpos[-1]))
@@ -591,7 +596,7 @@ static int get_param_part(char endchar,
         sep = *p;
         *endpos = '\0';
         if(slist_append(&headers, hdr)) {
-          errorf("Out of memory for field header");
+          errorf(config->global, "Out of memory for field header");
           curl_slist_free_all(headers);
           return -1;
         }
@@ -605,7 +610,7 @@ static int get_param_part(char endchar,
       for(p += 8; ISBLANK(*p); p++)
         ;
       tp = p;
-      encoder = get_param_word(&p, &endpos, endchar);
+      encoder = get_param_word(config, &p, &endpos, endchar);
       /* If not quoted, strip trailing spaces. */
       if(encoder == tp)
         while(endpos > encoder && ISSPACE(endpos[-1]))
@@ -622,12 +627,12 @@ static int get_param_part(char endchar,
     }
     else {
       /* unknown prefix, skip to next block */
-      char *unknown = get_param_word(&p, &endpos, endchar);
+      char *unknown = get_param_word(config, &p, &endpos, endchar);
 
       sep = *p;
       *endpos = '\0';
       if(*unknown)
-        warnf("skip unknown form field: %s", unknown);
+        warnf(config->global, "skip unknown form field: %s", unknown);
     }
   }
 
@@ -638,22 +643,25 @@ static int get_param_part(char endchar,
   if(ptype)
     *ptype = type;
   else if(type)
-    warnf("Field content type not allowed here: %s", type);
+    warnf(config->global, "Field content type not allowed here: %s", type);
 
   if(pfilename)
     *pfilename = filename;
   else if(filename)
-    warnf("Field filename not allowed here: %s", filename);
+    warnf(config->global,
+          "Field filename not allowed here: %s", filename);
 
   if(pencoder)
     *pencoder = encoder;
   else if(encoder)
-    warnf("Field encoder not allowed here: %s", encoder);
+    warnf(config->global,
+          "Field encoder not allowed here: %s", encoder);
 
   if(pheaders)
     *pheaders = headers;
   else if(headers) {
-    warnf("Field headers not allowed here: %s", headers->data);
+    warnf(config->global,
+          "Field headers not allowed here: %s", headers->data);
     curl_slist_free_all(headers);
   }
 
@@ -718,7 +726,8 @@ static int get_param_part(char endchar,
     }                                                                   \
   } while(0)
 
-int formparse(const char *input,
+int formparse(struct OperationConfig *config,
+              const char *input,
               struct tool_mime **mimeroot,
               struct tool_mime **mimecurrent,
               bool literal_value)
@@ -760,7 +769,8 @@ int formparse(const char *input,
 
     if(*contp == '(' && !literal_value) {
       /* Starting a multipart. */
-      sep = get_param_part('\0', &contp, &data, &type, NULL, NULL, &headers);
+      sep = get_param_part(config, '\0',
+                           &contp, &data, &type, NULL, NULL, &headers);
       if(sep < 0)
         goto fail;
       part = tool_mime_new_parts(*mimecurrent);
@@ -774,7 +784,7 @@ int formparse(const char *input,
     else if(!name && !strcmp(contp, ")") && !literal_value) {
       /* Ending a multipart. */
       if(*mimecurrent == *mimeroot) {
-        warnf("no multipart to terminate");
+        warnf(config->global, "no multipart to terminate");
         goto fail;
       }
       *mimecurrent = (*mimecurrent)->parent;
@@ -789,7 +799,7 @@ int formparse(const char *input,
         /* since this was a file, it may have a content-type specifier
            at the end too, or a filename. Or both. */
         ++contp;
-        sep = get_param_part(',', &contp,
+        sep = get_param_part(config, ',', &contp,
                              &data, &type, &filename, &encoder, &headers);
         if(sep < 0) {
           goto fail;
@@ -813,12 +823,14 @@ int formparse(const char *input,
           goto fail;
         part->headers = headers;
         headers = NULL;
+        part->global = config->global;
         if(res == CURLE_READ_ERROR) {
             /* An error occurred while reading stdin: if read has started,
                issue the error now. Else, delay it until processed by
                libcurl. */
           if(part->size > 0) {
-            warnf("error while reading standard input");
+            warnf(config->global,
+                  "error while reading standard input");
             goto fail;
           }
           tool_safefree(part->data);
@@ -836,7 +848,7 @@ int formparse(const char *input,
     else {
       if(*contp == '<' && !literal_value) {
         ++contp;
-        sep = get_param_part('\0', &contp,
+        sep = get_param_part(config, '\0', &contp,
                              &data, &type, NULL, &encoder, &headers);
         if(sep < 0)
           goto fail;
@@ -847,12 +859,14 @@ int formparse(const char *input,
           goto fail;
         part->headers = headers;
         headers = NULL;
+        part->global = config->global;
         if(res == CURLE_READ_ERROR) {
             /* An error occurred while reading stdin: if read has started,
                issue the error now. Else, delay it until processed by
                libcurl. */
           if(part->size > 0) {
-            warnf("error while reading standard input");
+            warnf(config->global,
+                  "error while reading standard input");
             goto fail;
           }
           tool_safefree(part->data);
@@ -864,7 +878,7 @@ int formparse(const char *input,
         if(literal_value)
           data = contp;
         else {
-          sep = get_param_part('\0', &contp,
+          sep = get_param_part(config, '\0', &contp,
                                &data, &type, &filename, &encoder, &headers);
           if(sep < 0)
             goto fail;
@@ -883,7 +897,8 @@ int formparse(const char *input,
 
       if(sep) {
         *contp = (char) sep;
-        warnf("garbage at end of field specification: %s", contp);
+        warnf(config->global,
+              "garbage at end of field specification: %s", contp);
       }
     }
 
@@ -891,7 +906,7 @@ int formparse(const char *input,
     SET_TOOL_MIME_PTR(part, name);
   }
   else {
-    warnf("Illegally formatted input field");
+    warnf(config->global, "Illegally formatted input field");
     goto fail;
   }
   err = 0;

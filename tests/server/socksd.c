@@ -122,7 +122,7 @@ static void socksd_getconfig(void)
     while(fgets(buffer, sizeof(buffer), fp)) {
       char key[32];
       char value[260];
-      if(sscanf(buffer, "%31s %259s", key, value) == 2) {
+      if(2 == sscanf(buffer, "%31s %259s", key, value)) {
         if(!strcmp(key, "version")) {
           s_config.version = byteval(value);
           logmsg("version [%d] set", s_config.version);
@@ -629,35 +629,35 @@ static bool socksd_incoming(curl_socket_t listenfd)
     FD_ZERO(&fds_err);
 
     /* there's always a socket to wait for */
-#ifdef __DJGPP__
+#if defined(__DJGPP__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warith-conversion"
 #endif
     FD_SET(sockfd, &fds_read);
-#ifdef __DJGPP__
+#if defined(__DJGPP__)
 #pragma GCC diagnostic pop
 #endif
 
     for(i = 0; i < 2; i++) {
       if(c[i].used) {
         curl_socket_t fd = c[i].clientfd;
-#ifdef __DJGPP__
+#if defined(__DJGPP__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warith-conversion"
 #endif
         FD_SET(fd, &fds_read);
-#ifdef __DJGPP__
+#if defined(__DJGPP__)
 #pragma GCC diagnostic pop
 #endif
         if((int)fd > maxfd)
           maxfd = (int)fd;
         fd = c[i].remotefd;
-#ifdef __DJGPP__
+#if defined(__DJGPP__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warith-conversion"
 #endif
         FD_SET(fd, &fds_read);
-#ifdef __DJGPP__
+#if defined(__DJGPP__)
 #pragma GCC diagnostic pop
 #endif
         if((int)fd > maxfd)

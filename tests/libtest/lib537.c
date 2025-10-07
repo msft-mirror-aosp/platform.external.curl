@@ -435,7 +435,7 @@ static int t537_test_rlimit(int keep_open)
   return 0;
 }
 
-static CURLcode test_lib537(const char *URL)
+static CURLcode test_lib537(char *URL)
 {
   CURLcode res;
   CURL *curl;
@@ -485,13 +485,13 @@ test_cleanup:
   return res;
 }
 
-#else /* HAVE_GETRLIMIT && HAVE_SETRLIMIT */
+#else /* defined(HAVE_GETRLIMIT) && defined(HAVE_SETRLIMIT) */
 
-static CURLcode test_lib537(const char *URL)
+static CURLcode test_lib537(char *URL)
 {
   (void)URL;
   curl_mprintf("system lacks necessary system function(s)");
   return TEST_ERR_MAJOR_BAD; /* skip test */
 }
 
-#endif /* HAVE_GETRLIMIT && HAVE_SETRLIMIT */
+#endif /* defined(HAVE_GETRLIMIT) && defined(HAVE_SETRLIMIT) */

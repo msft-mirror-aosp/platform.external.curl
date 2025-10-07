@@ -23,9 +23,6 @@
 #
 ###########################################################################
 
-use strict;
-use warnings;
-
 my %filelevel= ('file' => 1,
                 'service' => 1);
 
@@ -41,8 +38,6 @@ sub submit {
         undef $$jref{$k} if(!$filelevel{$k});
     }
 }
-
-my %job;
 
 sub githubactions {
     my ($tag)=@_;
@@ -346,8 +341,6 @@ sub circle {
     my $cmds;
     my $jobs;
     my $workflow;
-    my $cmdname;
-    my $jobname;
     $job{'file'} = ".circleci/config.yml";
     $job{'service'} = "circleci";
     while(<G>) {
@@ -415,10 +408,6 @@ sub zuul {
     my %job;
     my $line=0;
     my $type;
-    my $jobmode;
-    my $apt = 0;
-    my $env = 0;
-    my $envcont;
     $job{'file'} = "zuul.d/jobs.yaml";
     $job{'service'} = "zuul";
     while(<G>) {

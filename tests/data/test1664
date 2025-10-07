@@ -9,6 +9,9 @@ strparse
 #
 # Client-side
 <client>
+<server>
+none
+</server>
 <features>
 unittest
 large-size

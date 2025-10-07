@@ -68,7 +68,7 @@ int curlx_wait_ms(timediff_t timeout_ms)
     SET_SOCKERRNO(SOCKEINVAL);
     return -1;
   }
-#ifdef MSDOS
+#if defined(MSDOS)
   delay((unsigned int)timeout_ms);
 #elif defined(_WIN32)
   /* prevent overflow, timeout_ms is typecast to ULONG/DWORD. */

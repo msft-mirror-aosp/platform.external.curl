@@ -30,7 +30,7 @@ my @tabs = (
     "^m4/zz40-xc-ovr.m4",
     "Makefile\\.(am|example)\$",
     "/mkfile",
-    "\\.(sln|vc)\$",
+    "\\.(bat|sln|vc)\$",
     "^tests/data/test",
 );
 
@@ -151,11 +151,6 @@ while(my $filename = <$git_ls_files>) {
         push @err, "content: has multiple EOL at EOF";
     }
 
-    if($content =~ /\n\n\n\n/ ||
-        $content =~ /\r\n\r\n\r\n\r\n/) {
-        push @err, "content: has 3 or more consecutive empty lines";
-    }
-
     if($content =~ /([\x00-\x08\x0b\x0c\x0e-\x1f\x7f])/) {
         push @err, "content: has binary contents";
     }
@@ -172,13 +167,7 @@ while(my $filename = <$git_ls_files>) {
         for my $e (split(//, $non)) {
             $hex .= sprintf("%s%02x", $hex ? " ": "", ord($e));
         }
-        my $line;
-        for my $l (split(/\n/, $content)) {
-            $line++;
-            if($l =~ /([\x80-\xff]+)/) {
-                push @err, "line $line: has non-ASCII: '$non' ($hex)";
-            }
-        }
+        push @err, "content: has non-ASCII: '$non' ($hex)";
     }
 
     if(@err) {

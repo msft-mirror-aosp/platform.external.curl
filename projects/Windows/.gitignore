@@ -2,6 +2,9 @@
 #
 # SPDX-License-Identifier: curl
 
-VC10/
-VC11/
-VC12/
+*.ncb
+*.opensdf
+*.sdf
+*.suo
+*.user
+*.vcxproj

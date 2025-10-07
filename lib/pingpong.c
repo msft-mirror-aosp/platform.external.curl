@@ -397,13 +397,19 @@ CURLcode Curl_pp_readresp(struct Curl_easy *data,
   return result;
 }
 
-CURLcode Curl_pp_pollset(struct Curl_easy *data,
-                         struct pingpong *pp,
-                         struct easy_pollset *ps)
+int Curl_pp_getsock(struct Curl_easy *data,
+                    struct pingpong *pp, curl_socket_t *socks)
 {
-  int flags = pp->sendleft ? CURL_POLL_OUT : CURL_POLL_IN;
-  return Curl_pollset_change(data, ps, data->conn->sock[FIRSTSOCKET],
-                             flags, 0);
+  struct connectdata *conn = data->conn;
+  socks[0] = conn->sock[FIRSTSOCKET];
+
+  if(pp->sendleft) {
+    /* write mode */
+    return GETSOCK_WRITESOCK(0);
+  }
+
+  /* read mode */
+  return GETSOCK_READSOCK(0);
 }
 
 bool Curl_pp_needs_flush(struct Curl_easy *data,

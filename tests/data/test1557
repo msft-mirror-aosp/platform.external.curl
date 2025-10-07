@@ -10,6 +10,9 @@ crash
 </reply>
 
 <client>
+<server>
+none
+</server>
 <tool>
 lib%TESTNUMBER
 </tool>
@@ -18,7 +21,7 @@ lib%TESTNUMBER
 Remove easy handle in pending connections doesn't leave dangling entry
 </name>
 <command>
-hostname.invalid
+nothing
 </command>
 </client>
 

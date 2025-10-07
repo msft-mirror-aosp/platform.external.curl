@@ -23,11 +23,8 @@
 #
 ###########################################################################
 
-use strict;
-use warnings;
-
 my $varname = "var";
-if(@ARGV && $ARGV[0] eq "--var") {
+if($ARGV[0] eq "--var") {
     shift;
     $varname = shift @ARGV;
 }

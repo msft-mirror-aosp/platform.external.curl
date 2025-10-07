@@ -393,11 +393,9 @@ out:
 /* A server certificate verify callback for Rustls that always returns
    RUSTLS_RESULT_OK, or in other words disable certificate verification. */
 static uint32_t
-cr_verify_none(void *userdata,
-               const rustls_verify_server_cert_params *params)
+cr_verify_none(void *userdata UNUSED_PARAM,
+               const rustls_verify_server_cert_params *params UNUSED_PARAM)
 {
-  (void)userdata;
-  (void)params;
   return RUSTLS_RESULT_OK;
 }
 
@@ -585,7 +583,7 @@ init_config_builder(struct Curl_easy *data,
     goto cleanup;
   }
 
-#ifdef USE_ECH
+#if defined(USE_ECH)
   if(ECH_ENABLED(data)) {
     tls_versions[0] = RUSTLS_TLS_VERSION_TLSV1_3;
     tls_versions_len = 1;
@@ -920,7 +918,7 @@ cleanup:
   return result;
 }
 
-#ifdef USE_ECH
+#if defined(USE_ECH)
 static CURLcode
 init_config_builder_ech(struct Curl_easy *data,
                         const struct ssl_connect_data *connssl,
@@ -1079,7 +1077,7 @@ cr_init_backend(struct Curl_cfilter *cf, struct Curl_easy *data,
     }
   }
 
-#ifdef USE_ECH
+#if defined(USE_ECH)
   if(ECH_ENABLED(data)) {
     result = init_config_builder_ech(data, connssl, config_builder);
     if(result != CURLE_OK && data->set.tls_ech & CURLECH_HARD) {
@@ -1297,13 +1295,12 @@ cr_connect(struct Curl_cfilter *cf,
 
 static void *
 cr_get_internals(struct ssl_connect_data *connssl,
-                 CURLINFO info)
+                 CURLINFO info UNUSED_PARAM)
 {
   struct rustls_ssl_backend_data *backend =
     (struct rustls_ssl_backend_data *)connssl->backend;
-  (void)info;
   DEBUGASSERT(backend);
-  return backend->conn;
+  return &backend->conn;
 }
 
 static CURLcode

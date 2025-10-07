@@ -39,7 +39,8 @@ static void splayprint(struct Curl_tree *t, int d, char output)
       printf("  ");
 
   if(output) {
-    printf("%ld.%ld[%d]", (long)t->key.tv_sec, (long)t->key.tv_usec, i);
+    printf("%ld.%ld[%d]", (long)t->key.tv_sec,
+           (long)t->key.tv_usec, i);
   }
 
   for(count = 0, node = t->samen; node != t; node = node->samen, count++)
@@ -55,7 +56,7 @@ static void splayprint(struct Curl_tree *t, int d, char output)
   splayprint(t->smaller, d + 1, output);
 }
 
-static CURLcode test_unit1309(const char *arg)
+static CURLcode test_unit1309(char *arg)
 {
   UNITTEST_BEGIN_SIMPLE
 

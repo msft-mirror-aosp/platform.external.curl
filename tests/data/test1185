@@ -8,6 +8,9 @@ checksrc
 #
 # Client-side
 <client>
+<server>
+none
+</server>
 <name>
 checksrc
 </name>

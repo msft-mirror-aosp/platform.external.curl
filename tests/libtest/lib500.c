@@ -52,7 +52,7 @@ static void setupcallbacks(CURL *curl)
   testcounter = 0;
 }
 
-static CURLcode test_lib500(const char *URL)
+static CURLcode test_lib500(char *URL)
 {
   CURLcode res;
   CURL *curl;
@@ -73,9 +73,9 @@ static CURLcode test_lib500(const char *URL)
   test_setopt(curl, CURLOPT_URL, URL);
   test_setopt(curl, CURLOPT_HEADER, 1L);
 
-  debug_config.nohex = TRUE;
-  debug_config.tracetime = TRUE;
-  test_setopt(curl, CURLOPT_DEBUGDATA, &debug_config);
+  libtest_debug_config.nohex = 1;
+  libtest_debug_config.tracetime = 1;
+  test_setopt(curl, CURLOPT_DEBUGDATA, &libtest_debug_config);
   test_setopt(curl, CURLOPT_DEBUGFUNCTION, libtest_debug_cb);
   test_setopt(curl, CURLOPT_VERBOSE, 1L);
 

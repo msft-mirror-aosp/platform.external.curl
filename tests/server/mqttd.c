@@ -81,7 +81,7 @@ static void mqttd_getconfig(void)
     while(fgets(buffer, sizeof(buffer), fp)) {
       char key[32];
       char value[32];
-      if(sscanf(buffer, "%31s %31s", key, value) == 2) {
+      if(2 == sscanf(buffer, "%31s %31s", key, value)) {
         if(!strcmp(key, "version")) {
           m_config.version = byteval(value);
           logmsg("version [%d] set", m_config.version);
@@ -228,8 +228,11 @@ static int disconnect(FILE *dump, curl_socket_t fd)
   return 1;
 }
 
+
+
 /*
   do
+
      encodedByte = X MOD 128
 
      X = X DIV 128
@@ -666,12 +669,12 @@ static bool mqttd_incoming(curl_socket_t listenfd)
     FD_ZERO(&fds_err);
 
     /* there's always a socket to wait for */
-#ifdef __DJGPP__
+#if defined(__DJGPP__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warith-conversion"
 #endif
     FD_SET(sockfd, &fds_read);
-#ifdef __DJGPP__
+#if defined(__DJGPP__)
 #pragma GCC diagnostic pop
 #endif
 

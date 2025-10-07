@@ -11,7 +11,6 @@ Multi: boolean
 See-also:
   - resolve
   - alt-svc
-  - follow
 Example:
   - -L $URL
 ---

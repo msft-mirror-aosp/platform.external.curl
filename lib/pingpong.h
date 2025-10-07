@@ -147,9 +147,8 @@ CURLcode Curl_pp_flushsend(struct Curl_easy *data,
 /* call this when a pingpong connection is disconnected */
 CURLcode Curl_pp_disconnect(struct pingpong *pp);
 
-CURLcode Curl_pp_pollset(struct Curl_easy *data,
-                         struct pingpong *pp,
-                         struct easy_pollset *ps);
+int Curl_pp_getsock(struct Curl_easy *data, struct pingpong *pp,
+                    curl_socket_t *socks);
 
 
 /***********************************************************************

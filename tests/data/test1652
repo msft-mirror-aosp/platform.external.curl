@@ -7,6 +7,9 @@ infof
 </info>
 
 <client>
+<server>
+none
+</server>
 <features>
 unittest
 </features>

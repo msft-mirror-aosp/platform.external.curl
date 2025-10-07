@@ -79,7 +79,7 @@ tail -n +7 ./docs/THANKS | sed 's/ github/ github/i'  > $rand
   sed 's/, */\n/g'| \
   sed 's/^ *//'
 } | \
-LC_ALL=C sed -f ./docs/THANKS-filter | \
+sed -f ./docs/THANKS-filter | \
 sort -fu | \
 grep -aixvFf ./docs/THANKS >> $rand
 

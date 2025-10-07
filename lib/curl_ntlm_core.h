@@ -26,7 +26,7 @@
 
 #include "curl_setup.h"
 
-#ifdef USE_CURL_NTLM_CORE
+#if defined(USE_CURL_NTLM_CORE)
 
 #include "vauth/vauth.h"
 
@@ -47,7 +47,7 @@ CURLcode Curl_ntlm_core_mk_lm_hash(const char *password,
 CURLcode Curl_ntlm_core_mk_nt_hash(const char *password,
                                    unsigned char *ntbuffer /* 21 bytes */);
 
-#ifndef USE_WINDOWS_SSPI
+#if !defined(USE_WINDOWS_SSPI)
 
 CURLcode Curl_hmac_md5(const unsigned char *key, unsigned int keylen,
                        const unsigned char *data, unsigned int datalen,

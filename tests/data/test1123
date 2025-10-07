@@ -176,8 +176,8 @@ GET /%TESTNUMBER HTTP/1.1
 Host: %HOSTIP:%HTTPPORT
 User-Agent: curl/%VERSION
 Accept: */*
-TE: gzip
 Connection: TE
+TE: gzip
 
 </protocol>
 </verify>

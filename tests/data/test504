@@ -16,6 +16,9 @@ connect to non-listen
 
 # Client-side
 <client>
+<server>
+none
+</server>
 <features>
 http
 proxy

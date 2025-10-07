@@ -51,7 +51,6 @@ BEGIN {
 use IPC::Open2;
 use Digest::MD5;
 use File::Basename;
-use Time::HiRes;
 
 use directories;
 
@@ -485,7 +484,7 @@ sub sendcontrol {
 
         for(@a) {
             sockfilt $_;
-            Time::HiRes::sleep($ctrldelay);
+            portable_sleep($ctrldelay);
         }
     }
     my $log;
@@ -522,7 +521,7 @@ sub senddata {
             # pause between each byte
             for (split(//,$l)) {
                 sockfiltsecondary $_;
-                Time::HiRes::sleep($datadelay);
+                portable_sleep($datadelay);
             }
         }
     }
@@ -3293,7 +3292,7 @@ while(1) {
             logmsg("Sleep for $delay seconds\n");
             my $twentieths = $delay * 20;
             while($twentieths--) {
-                Time::HiRes::sleep(0.05) unless($got_exit_signal);
+                portable_sleep(0.05) unless($got_exit_signal);
             }
         }
 

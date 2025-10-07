@@ -27,7 +27,6 @@
 # a late evening in the #curl IRC channel.
 #
 
-use strict;
 use warnings;
 use vars qw($Cpreprocessor);
 use allversions;
@@ -53,15 +52,13 @@ my $root=$ARGV[0] || ".";
 
 # need an include directory when building out-of-tree
 my $i = ($ARGV[1]) ? "-I$ARGV[1] " : '';
-my $error = 0;
+my $error;
 
 my $versions = $ARGV[2];
 
 my @syms;
 my %manpage;
 my %symadded;
-
-our %pastversion;
 
 sub checkmanpage {
     my ($m) = @_;

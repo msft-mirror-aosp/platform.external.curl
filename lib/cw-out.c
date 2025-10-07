@@ -74,7 +74,6 @@
 typedef enum {
   CW_OUT_NONE,
   CW_OUT_BODY,
-  CW_OUT_BODY_0LEN,
   CW_OUT_HDS
 } cw_out_type;
 
@@ -171,7 +170,6 @@ static void cw_get_writefunc(struct Curl_easy *data, cw_out_type otype,
 {
   switch(otype) {
   case CW_OUT_BODY:
-  case CW_OUT_BODY_0LEN:
     *pwcb = data->set.fwrite_func;
     *pwcb_data = data->set.out;
     *pmax_write = CURL_MAX_WRITE_SIZE;
@@ -195,51 +193,6 @@ static void cw_get_writefunc(struct Curl_easy *data, cw_out_type otype,
   }
 }
 
-static CURLcode cw_out_cb_write(struct cw_out_ctx *ctx,
-                                struct Curl_easy *data,
-                                curl_write_callback wcb,
-                                void *wcb_data,
-                                cw_out_type otype,
-                                const char *buf, size_t blen,
-                                size_t *pnwritten)
-{
-  size_t nwritten;
-  CURLcode result;
-
-  DEBUGASSERT(data->conn);
-  *pnwritten = 0;
-  Curl_set_in_callback(data, TRUE);
-  nwritten = wcb((char *)CURL_UNCONST(buf), 1, blen, wcb_data);
-  Curl_set_in_callback(data, FALSE);
-  CURL_TRC_WRITE(data, "[OUT] wrote %zu %s bytes -> %zu",
-                 blen, (otype == CW_OUT_HDS) ? "header" : "body",
-                 nwritten);
-  if(CURL_WRITEFUNC_PAUSE == nwritten) {
-    if(data->conn->handler->flags & PROTOPT_NONETWORK) {
-      /* Protocols that work without network cannot be paused. This is
-         actually only FILE:// just now, and it cannot pause since the
-         transfer is not done using the "normal" procedure. */
-      failf(data, "Write callback asked for PAUSE when not supported");
-      return CURLE_WRITE_ERROR;
-    }
-    ctx->paused = TRUE;
-    CURL_TRC_WRITE(data, "[OUT] PAUSE requested by client");
-    result = Curl_xfer_pause_recv(data, TRUE);
-    return result ? result : CURLE_AGAIN;
-  }
-  else if(CURL_WRITEFUNC_ERROR == nwritten) {
-    failf(data, "client returned ERROR on write of %zu bytes", blen);
-    return CURLE_WRITE_ERROR;
-  }
-  else if(nwritten != blen) {
-    failf(data, "Failure writing output to destination, "
-          "passed %zu returned %zd", blen, nwritten);
-    return CURLE_WRITE_ERROR;
-  }
-  *pnwritten = nwritten;
-  return CURLE_OK;
-}
-
 static CURLcode cw_out_ptr_flush(struct cw_out_ctx *ctx,
                                  struct Curl_easy *data,
                                  cw_out_type otype,
@@ -251,7 +204,6 @@ static CURLcode cw_out_ptr_flush(struct cw_out_ctx *ctx,
   void *wcb_data;
   size_t max_write, min_write;
   size_t wlen, nwritten;
-  CURLcode result;
 
   /* If we errored once, we do not invoke the client callback  again */
   if(ctx->errored)
@@ -265,24 +217,40 @@ static CURLcode cw_out_ptr_flush(struct cw_out_ctx *ctx,
   }
 
   *pconsumed = 0;
-  if(otype == CW_OUT_BODY_0LEN) {
-    DEBUGASSERT(!blen);
-    return cw_out_cb_write(ctx, data, wcb, wcb_data, otype,
-                           buf, blen, &nwritten);
-  }
-  else {
-    while(blen && !ctx->paused) {
-      if(!flush_all && blen < min_write)
-        break;
-      wlen = max_write ? CURLMIN(blen, max_write) : blen;
-      result = cw_out_cb_write(ctx, data, wcb, wcb_data, otype,
-                               buf, wlen, &nwritten);
-      if(result)
-        return result;
-      *pconsumed += nwritten;
-      blen -= nwritten;
-      buf += nwritten;
+  while(blen && !ctx->paused) {
+    if(!flush_all && blen < min_write)
+      break;
+    wlen = max_write ? CURLMIN(blen, max_write) : blen;
+    Curl_set_in_callback(data, TRUE);
+    nwritten = wcb((char *)CURL_UNCONST(buf), 1, wlen, wcb_data);
+    Curl_set_in_callback(data, FALSE);
+    CURL_TRC_WRITE(data, "[OUT] wrote %zu %s bytes -> %zu",
+                   wlen, (otype == CW_OUT_BODY) ? "body" : "header",
+                   nwritten);
+    if(CURL_WRITEFUNC_PAUSE == nwritten) {
+      if(data->conn && data->conn->handler->flags & PROTOPT_NONETWORK) {
+        /* Protocols that work without network cannot be paused. This is
+           actually only FILE:// just now, and it cannot pause since the
+           transfer is not done using the "normal" procedure. */
+        failf(data, "Write callback asked for PAUSE when not supported");
+        return CURLE_WRITE_ERROR;
+      }
+      ctx->paused = TRUE;
+      CURL_TRC_WRITE(data, "[OUT] PAUSE requested by client");
+      return Curl_xfer_pause_recv(data, TRUE);
     }
+    else if(CURL_WRITEFUNC_ERROR == nwritten) {
+      failf(data, "client returned ERROR on write of %zu bytes", wlen);
+      return CURLE_WRITE_ERROR;
+    }
+    else if(nwritten != wlen) {
+      failf(data, "Failure writing output to destination, "
+            "passed %zu returned %zd", wlen, nwritten);
+      return CURLE_WRITE_ERROR;
+    }
+    *pconsumed += nwritten;
+    blen -= nwritten;
+    buf += nwritten;
   }
   return CURLE_OK;
 }
@@ -294,14 +262,14 @@ static CURLcode cw_out_buf_flush(struct cw_out_ctx *ctx,
 {
   CURLcode result = CURLE_OK;
 
-  if(curlx_dyn_len(&cwbuf->b) || (cwbuf->type == CW_OUT_BODY_0LEN)) {
+  if(curlx_dyn_len(&cwbuf->b)) {
     size_t consumed;
 
     result = cw_out_ptr_flush(ctx, data, cwbuf->type, flush_all,
                               curlx_dyn_ptr(&cwbuf->b),
                               curlx_dyn_len(&cwbuf->b),
                               &consumed);
-    if(result && (result != CURLE_AGAIN))
+    if(result)
       return result;
 
     if(consumed) {
@@ -414,9 +382,8 @@ static CURLcode cw_out_do_write(struct cw_out_ctx *ctx,
     size_t consumed;
     result = cw_out_ptr_flush(ctx, data, otype, flush_all,
                               buf, blen, &consumed);
-    if(result && (result != CURLE_AGAIN))
+    if(result)
       return result;
-    result = CURLE_OK;
     if(consumed < blen) {
       /* did not write all, append the rest */
       result = cw_out_append(ctx, data, otype,
@@ -446,9 +413,7 @@ static CURLcode cw_out_write(struct Curl_easy *data,
 
   if((type & CLIENTWRITE_BODY) ||
      ((type & CLIENTWRITE_HEADER) && data->set.include_header)) {
-    cw_out_type otype = (!blen && (type & CLIENTWRITE_0LEN)) ?
-                        CW_OUT_BODY_0LEN : CW_OUT_BODY;
-    result = cw_out_do_write(ctx, data, otype, flush_all, buf, blen);
+    result = cw_out_do_write(ctx, data, CW_OUT_BODY, flush_all, buf, blen);
     if(result)
       return result;
   }

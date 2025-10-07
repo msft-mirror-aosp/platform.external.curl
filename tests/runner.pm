@@ -39,7 +39,6 @@ use warnings;
 use 5.006;
 
 use File::Basename;
-use Time::HiRes;
 
 BEGIN {
     use base qw(Exporter);
@@ -84,6 +83,9 @@ use Storable qw(
 
 use pathhelp qw(
     exe_ext
+    );
+use processhelp qw(
+    portable_sleep
     );
 use servers qw(
     checkcmd
@@ -161,7 +163,7 @@ sub runner_init {
 
     # enable memory debugging if curl is compiled with it
     $ENV{'CURL_MEMDEBUG'} = "$logdir/$MEMDUMP";
-    delete $ENV{'CURL_ENTROPY'} if($ENV{'CURL_ENTROPY'});
+    $ENV{'CURL_ENTROPY'}="12345678";
     $ENV{'CURL_FORCETIME'}=1; # for debug NTLM magic
     $ENV{'CURL_GLOBAL_INIT'}=1; # debug curl_global_init/cleanup use
     $ENV{'HOME'}=$pwd;
@@ -417,7 +419,7 @@ sub waitlockunlock {
         my $lockretry = $serverlogslocktimeout * 20;
         my @locks;
         while((@locks = logslocked()) && $lockretry--) {
-            Time::HiRes::sleep(0.05);
+            portable_sleep(0.05);
         }
         if(($lockretry < 0) &&
            ($serverlogslocktimeout >= $defserverlogslocktimeout)) {
@@ -456,18 +458,18 @@ sub torture {
         return 0;
     }
 
-    my @torture_tests = (1 .. $count);
+    my @ttests = (1 .. $count);
     if($shallow && ($shallow < $count)) {
-        my $discard = scalar(@torture_tests) - $shallow;
-        my $percent = sprintf("%.2f%%", $shallow * 100 / scalar(@torture_tests));
+        my $discard = scalar(@ttests) - $shallow;
+        my $percent = sprintf("%.2f%%", $shallow * 100 / scalar(@ttests));
         logmsg " $count functions found, but only fail $shallow ($percent)\n";
         while($discard) {
             my $rm;
             do {
                 # find a test to discard
-                $rm = rand(scalar(@torture_tests));
-            } while(!$torture_tests[$rm]);
-            $torture_tests[$rm] = undef;
+                $rm = rand(scalar(@ttests));
+            } while(!$ttests[$rm]);
+            $ttests[$rm] = undef;
             $discard--;
         }
     }
@@ -475,7 +477,7 @@ sub torture {
         logmsg " $count functions to make fail\n";
     }
 
-    for (@torture_tests) {
+    for (@ttests) {
         my $limit = $_;
         my $fail;
         my $dumped_core;
@@ -609,7 +611,11 @@ sub singletest_startservers {
     my $error;
     if(!$listonly) {
         my @what = getpart("client", "server");
-        if($what[0]) {
+        if(!$what[0]) {
+            warn "Test case $testnum has no server(s) specified";
+            $why = "no server specified";
+            $error = -1;
+        } else {
             my $err;
             ($why, $err) = serverfortest(@what);
             if($err == 1) {
@@ -862,6 +868,7 @@ sub singletest_run {
         else {
             $cmdargs .= "--trace-ascii $LOGDIR/trace$testnum ";
         }
+        $cmdargs .= "--trace-config all ";
         $cmdargs .= "--trace-time ";
         if($run_event_based) {
             $cmdargs .= "--test-event ";
@@ -1085,7 +1092,7 @@ sub singletest_clean {
         }
     }
 
-    Time::HiRes::sleep($postcommanddelay) if($postcommanddelay);
+    portable_sleep($postcommanddelay) if($postcommanddelay);
 
     my @killtestservers = getpart("client", "killserver");
     if(@killtestservers) {
@@ -1138,6 +1145,7 @@ sub singletest_postcheck {
     }
     return 0;
 }
+
 
 
 ###################################################################
@@ -1360,13 +1368,13 @@ sub runnerar {
 # Called by controller
 sub runnerar_ready {
     my ($blocking) = @_;
-    my $r_in = "";
+    my $rin = "";
     my %idbyfileno;
     my $maxfileno=0;
     my @ready_runners = ();
     foreach my $p (keys(%controllerr)) {
         my $fd = fileno($controllerr{$p});
-        vec($r_in, $fd, 1) = 1;
+        vec($rin, $fd, 1) = 1;
         $idbyfileno{$fd} = $p;  # save the runner ID for each pipe fd
         if($fd > $maxfileno) {
             $maxfileno = $fd;
@@ -1378,14 +1386,14 @@ sub runnerar_ready {
     # This may be interrupted and return EINTR, but this is ignored and the
     # caller will need to later call this function again.
     # TODO: this is relatively slow with hundreds of fds
-    my $e_in = $r_in;
-    if(select(my $r_out=$r_in, undef, my $e_out=$e_in, $blocking) >= 1) {
+    my $ein = $rin;
+    if(select(my $rout=$rin, undef, my $eout=$ein, $blocking) >= 1) {
         for my $fd (0..$maxfileno) {
             # Return an error condition first in case it's both
-            if(vec($e_out, $fd, 1)) {
+            if(vec($eout, $fd, 1)) {
                 return (undef, $idbyfileno{$fd});
             }
-            if(vec($r_out, $fd, 1)) {
+            if(vec($rout, $fd, 1)) {
                 push(@ready_runners, $idbyfileno{$fd});
             }
         }
