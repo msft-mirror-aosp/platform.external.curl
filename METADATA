@@ -18,7 +18,7 @@ third_party {
   identifier {
     type: "Git"
     value: "https://github.com/curl/curl/"
-    version: "8fc23088db24d60390c93f123c11fc18accd7c8c"
+    version: "11b991232fbcaa88e2b1faecac224416b0001e35"
     closest_version: "curl-8_16_0"
   }
 }
